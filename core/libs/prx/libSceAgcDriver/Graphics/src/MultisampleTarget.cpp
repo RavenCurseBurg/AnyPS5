@@ -178,6 +178,7 @@ public:
     void ApplyFastClear(const ColorTarget& use) {
         VkClearColorValue clear{};
         if (!TakeMultisampledClear(cmask, colorFill, use, clear)) return;
+        ensureGeneralLayout();
         recordCommands(context, [&](VkCommandBuffer commands, Recorder* recorder) {
             RecordMemoryBarrier(context, commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
             const VkImageSubresourceRange range{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
@@ -203,6 +204,7 @@ public:
         Require(cmask.Keys() != DccKeys::Clear0000, "a storage image access to a multisampled color target whose CMASK fast clear no draw has applied is not implemented");
         auto* recording = Recorder::Active();
         Require(recording != nullptr, "a multisampled color target is only written by recorded dispatches");
+        ensureGeneralLayout();
         makeStorable(*recording);
         ApplyFastClear(target);
         if (storageView == VK_NULL_HANDLE) {
@@ -225,6 +227,12 @@ public:
         return (usage & VK_IMAGE_USAGE_STORAGE_BIT) != 0;
     }
 
+    void PrepareForColorAttachment(const ColorTarget& use) {
+        SettleStorageWrites();
+        ensureGeneralLayout();
+        ApplyFastClear(use);
+    }
+
     std::shared_ptr<Texture> Sampled(VkComponentMapping components) {
         Require(sampleable, "the device cannot sample the multisampled color target's format at its sample count");
         Require(cmask.Refusal().empty(), cmask.Refusal());
@@ -236,9 +244,10 @@ public:
             RecordMemoryBarrier(context, commands, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
             Recorder::CountBarriers(Recorder::CommandClass::Draw, 1);
         });
+        ensureSampledLayout();
         const std::array<std::uint32_t, 4> key{static_cast<std::uint32_t>(components.r), static_cast<std::uint32_t>(components.g), static_cast<std::uint32_t>(components.b), static_cast<std::uint32_t>(components.a)};
         if (const auto found = textures.find(key); found != textures.end()) return found->second;
-        auto texture = std::make_shared<Texture>(context, image, target.format, VK_IMAGE_ASPECT_COLOR_BIT, components);
+        auto texture = std::make_shared<Texture>(context, image, target.format, VK_IMAGE_ASPECT_COLOR_BIT, components, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         textures.emplace(key, texture);
         return texture;
     }
@@ -288,6 +297,7 @@ public:
     bool fromTexture = false;
 
 private:
+    VkImageLayout imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     bool sampleable = false;
     VkImageUsageFlags usage = 0;
     VkFormat storageFormat = VK_FORMAT_UNDEFINED;
@@ -296,6 +306,32 @@ private:
     VkImageView storageView = VK_NULL_HANDLE;
     bool storageWritten = false;
     std::map<std::array<std::uint32_t, 4>, std::shared_ptr<Texture>> textures;
+
+    void transitionLayout(VkImageLayout next, VkAccessFlags sourceAccess, VkAccessFlags destinationAccess) {
+        if (imageLayout == next) return;
+        recordCommands(context, [&](VkCommandBuffer commands, Recorder* recorder) {
+            VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+            barrier.srcAccessMask = sourceAccess;
+            barrier.dstAccessMask = destinationAccess;
+            barrier.oldLayout = imageLayout;
+            barrier.newLayout = next;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = image;
+            barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+            context.Resolved(&DeviceFunctions::cmdPipelineBarrier, "vkCmdPipelineBarrier")(commands, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+            if (recorder != nullptr) Recorder::CountBarriers(Recorder::CommandClass::Draw, 1);
+        });
+        imageLayout = next;
+    }
+
+    void ensureGeneralLayout() {
+        transitionLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
+    }
+
+    void ensureSampledLayout() {
+        transitionLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+    }
 
     void release() noexcept {
         textures.clear();
@@ -388,15 +424,14 @@ MultisampleTarget& acquire(const Context& context, const ColorTarget& use) {
             target->cmask = MultisampledCmask(use.cmaskAddress, use.cmaskBytes);
         }
         target->cmask.CheckAddress(use.cmaskAddress);
-        target->SettleStorageWrites();
-        target->ApplyFastClear(use);
+        target->PrepareForColorAttachment(use);
         return *target;
     }
     targets().push_back(std::make_unique<MultisampleTarget>(context, use));
     auto& created = *targets().back();
     guard(context, use, created.active);
     if (use.cmaskFastClear) created.cmask.SeedKeys(CurrentDccKeys(use.cmaskAddress, static_cast<std::uint64_t>(use.cmaskBytes) * 256u));
-    created.ApplyFastClear(use);
+    created.PrepareForColorAttachment(use);
     return created;
 }
 
