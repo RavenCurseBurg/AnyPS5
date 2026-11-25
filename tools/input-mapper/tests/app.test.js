@@ -504,6 +504,11 @@ test('setting hints give the accepted range and built-in value in the interface 
         return row.children.find(child => child.className === 'hint');
     };
     assert.equal(hint('MouseCurve').textContent, '\u20660.2–5\u2069 · Built-in: 1');
+    assert.equal(hint('MouseSensitivity').textContent, '\u20660 < x ≤ 10\u2069 · Built-in: 1');
+    for (const [value, invalid] of [['0', 'true'], ['0.001', 'false'], ['10', 'false'], ['10.001', 'true']]) {
+        editInputSetting(app, 'MouseSensitivity', value);
+        assert.equal(inputSetting(app, 'MouseSensitivity').getAttribute('aria-invalid'), invalid, value);
+    }
     assert.equal(inputSetting(app, 'MouseCurve').getAttribute('aria-describedby'), `${hint('MouseCurve').id} input-settings-help`);
     assert.equal(hint('MouseStickTarget').textContent, 'Built-in: Right');
     assert.equal(hint('ToggleActions'), undefined);

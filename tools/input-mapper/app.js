@@ -306,12 +306,13 @@ function renderControllerRemaps() {
 
 function renderInputSettings() {
     settingControls.clear();
-    byId('input-setting-values').replaceChildren(...settingDefinitions.map(({name, kind, minimum, maximum, builtin}) => {
+    byId('input-setting-values').replaceChildren(...settingDefinitions.map(({name, kind, minimum, minimumExclusive, maximum, builtin}) => {
         const choices = kind === 'stickTarget' ? mouseStickTargets : undefined;
         const row = element('label');
         const label = element('span', name);
         label.dir = 'ltr';
-        const hint = element('span', [minimum === undefined ? '' : `\u2066${minimum}–${maximum}\u2069`, builtin === undefined ? '' : t('builtin', {inputs: builtin})].filter(Boolean).join(' · '));
+        const range = minimumExclusive ? `${minimum} < x ≤ ${maximum}` : `${minimum}–${maximum}`;
+        const hint = element('span', [minimum === undefined ? '' : `\u2066${range}\u2069`, builtin === undefined ? '' : t('builtin', {inputs: builtin})].filter(Boolean).join(' · '));
         hint.className = 'hint';
         hint.id = `setting-${name}-hint`;
         const control = element(choices ? 'select' : 'input');
