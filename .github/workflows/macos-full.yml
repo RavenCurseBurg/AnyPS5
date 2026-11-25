@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   full:
-    runs-on: macos-15-intel
+    runs-on: macos-26-intel
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
