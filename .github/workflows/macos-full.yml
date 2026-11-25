@@ -51,6 +51,25 @@ jobs:
           assert removed == expected & registered
           (Path(os.environ["RUNNER_TEMP"]) / "previously-excluded.txt").write_text("\n".join(sorted(removed)) + "\n")
           PY
+      - name: Check the selected LibreSSL headers on this host
+        run: |
+          cmake --build build --parallel 4 --target libressl_crypto
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import Path
+          target = "core/libs/prx/libSceLibreSsl/CMakeFiles/libressl_crypto.dir/libressl/"
+          for unit, header in (("glue.c.o", "crypto.h"), ("x509_name_print.c.o", "x509.h")):
+              graph = subprocess.check_output(["ninja", "-C", "build", "-t", "deps", target + unit], text=True)
+              names = [s.strip() for s in graph.splitlines() if "/openssl/" in s]
+              found = [s for s in names if s.endswith("/libressl-gen/include/openssl/" + header)]
+              print(unit, len(names), "OpenSSL header dependencies;", header, found, flush=True)
+              assert found and not any(s.startswith("/usr/local/include/openssl/") for s in names), names
+          PY
+      - name: Build the guest LibreSSL controls
+        run: cmake --build build --parallel 4 --target guest_libressl_x509_name_tests guest_libressl_x509_errors_tests guest_libressl_digest_tests
+      - name: Run the guest X509 and digest tests
+        continue-on-error: true
+        run: ctest --test-dir build --no-tests=error -V -R '^guest_libressl_(x509_name|x509_errors|digest)$' --repeat until-fail:3
       - id: build
         run: cmake --build build --parallel 6
       - name: Inspect test commands after the proposed default build
