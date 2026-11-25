@@ -2,7 +2,7 @@ name: macOS full
 
 on:
   push:
-    branches: [verify/full-macos-ci-prerequisites]
+    branches: [verify/full-macos-ci-intel-control]
   schedule:
     - cron: '17 4 * * *'
   workflow_dispatch:
@@ -16,14 +16,13 @@ concurrency:
 
 jobs:
   full:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - run: sudo softwareupdate --install-rosetta --agree-to-license
       - run: git submodule update --init --recursive --depth 1 --jobs 8
       - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_OSX_ARCHITECTURES=x86_64
       - name: Compare the proposed and corrected CTest list paths
