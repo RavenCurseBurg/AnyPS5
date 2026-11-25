@@ -6,6 +6,7 @@
 #include <cstring>
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 #include "prx/libc/include/General.hpp"
 
@@ -683,8 +684,24 @@ __complex__ float APS5_VABI cexpf_nid_postfix(__complex__ float z) {
 }
 
 __complex__ float APS5_VABI clogf_nid_postfix(__complex__ float z) {
-    const auto result = std::log(std::complex<float>(__real__ z, __imag__ z));
-    return MakeComplex(result.real(), result.imag());
+    const double x = __real__ z;
+    const double y = __imag__ z;
+    double larger = std::abs(x);
+    double smaller = std::abs(y);
+    if (larger < smaller) std::swap(larger, smaller);
+    double logMagnitude;
+    if (larger >= 0.5 && larger <= 1.5) {
+        const double radiusSquaredMinusOne = (larger - 1.0) * (larger + 1.0) + smaller * smaller;
+        if (std::abs(radiusSquaredMinusOne) < 0x1p-25) {
+            logMagnitude = radiusSquaredMinusOne == 0.0 ? 0.0
+                : 0.5 * radiusSquaredMinusOne - 0.25 * radiusSquaredMinusOne * radiusSquaredMinusOne;
+        } else {
+            logMagnitude = 0.5 * std::log1p(radiusSquaredMinusOne);
+        }
+    } else {
+        logMagnitude = std::log(std::hypot(x, y));
+    }
+    return MakeComplex(static_cast<float>(logMagnitude), static_cast<float>(std::atan2(y, x)));
 }
 
 __complex__ float APS5_VABI csinf_nid_postfix(__complex__ float z) {
