@@ -1,7 +1,9 @@
 #include "prx/libc/include/Api.hpp"
 #include "prx/libc/include/general/VabiMacros.hpp"
+#include <cfenv>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 
 namespace {
 
@@ -38,6 +40,18 @@ int main() {
     Require(Near(ccoshf_nid_postfix(zero), 1.0f, 0.0f));
     Require(Near(csinhf_nid_postfix(zero), 0.0f, 0.0f));
     Require(Near(ctanhf_nid_postfix(zero), 0.0f, 0.0f));
+    const auto saturated = ctanhf_nid_postfix(Make(-100.0f, -1.0f));
+    Require(__real__ saturated == -1.0f && __imag__ saturated == 0.0f && std::signbit(__imag__ saturated));
+    const auto tail = ctanf_nid_postfix(Make(1.0f, 48.0f));
+    Require(__real__ tail == 0x1.498p-138f && __imag__ tail == 1.0f);
+    const auto hugeAngle = ctanhf_nid_postfix(Make(1.0f, 1e30f));
+    Require(__real__ hugeAngle == 0x1.087fd2p+0f && __imag__ hugeAngle == 0x1.1a4e72p-2f);
+    const auto nearTangentPole = ctanhf_nid_postfix(Make(0x1p-30f, 0x1.921fb6p+0f));
+    Require(__real__ nearTangentPole == 0x1.dbc9d4p+18f && __imag__ nearTangentPole == -0x1.5cec08p+24f);
+    std::feclearexcept(FE_INVALID);
+    const auto infiniteAngle = ctanhf_nid_postfix(Make(-0.0f, std::numeric_limits<float>::infinity()));
+    Require(__real__ infiniteAngle == 0.0f && std::signbit(__real__ infiniteAngle) && std::isnan(__imag__ infiniteAngle));
+    Require(std::fetestexcept(FE_INVALID) != 0);
     Require(Near(cacoshf_nid_postfix(one), 0.0f, 0.0f));
     Require(Near(cexpf_nid_postfix(zero), 1.0f, 0.0f));
     Require(Near(clogf_nid_postfix(one), 0.0f, 0.0f));

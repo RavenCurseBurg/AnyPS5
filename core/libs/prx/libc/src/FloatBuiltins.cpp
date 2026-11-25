@@ -688,13 +688,32 @@ __complex__ float APS5_VABI csqrtf_nid_postfix(__complex__ float z) {
 }
 
 __complex__ float APS5_VABI ctanf_nid_postfix(__complex__ float z) {
-    const auto result = std::tan(std::complex<float>(__real__ z, __imag__ z));
-    return MakeComplex(result.real(), result.imag());
+    const auto rotated = ctanhf_nid_postfix(MakeComplex(__imag__ z, __real__ z));
+    return MakeComplex(__imag__ rotated, __real__ rotated);
 }
 
 __complex__ float APS5_VABI ctanhf_nid_postfix(__complex__ float z) {
-    const auto result = std::tanh(std::complex<float>(__real__ z, __imag__ z));
-    return MakeComplex(result.real(), result.imag());
+    const float real = __real__ z;
+    const float imaginary = __imag__ z;
+    if (imaginary == 0.0f) return MakeComplex(static_cast<float>(tanh_nid_postfix(real)), imaginary);
+    if (real == 0.0f) return MakeComplex(real, static_cast<float>(tan_nid_postfix(imaginary)));
+    const double twiceY = 2.0 * imaginary;
+    if (std::isinf(real)) {
+        const double sine = std::isfinite(imaginary) ? sin_nid_postfix(twiceY) : 0.0;
+        return MakeComplex(std::copysign(1.0f, real), static_cast<float>(std::copysign(0.0, sine)));
+    }
+    if (!std::isfinite(imaginary) || std::isnan(real)) {
+        const float nan = real + (imaginary - imaginary);
+        return MakeComplex(nan, nan);
+    }
+    const double exponent = -2.0 * std::abs(static_cast<double>(real));
+    const double decay = exp_nid_postfix(exponent);
+    const double gap = exponent > -1.0 ? -expm1_nid_postfix(exponent) : 1.0 - decay;
+    const double cosine = cos_nid_postfix(imaginary);
+    const double denominator = gap * gap + 4.0 * decay * cosine * cosine;
+    const double magnitude = gap * (1.0 + decay) / denominator;
+    const double phase = 2.0 * decay * sin_nid_postfix(twiceY) / denominator;
+    return MakeComplex(static_cast<float>(std::copysign(magnitude, real)), static_cast<float>(phase));
 }
 
 __complex__ float APS5_VABI cpowf_nid_postfix(__complex__ float x, __complex__ float y) {
