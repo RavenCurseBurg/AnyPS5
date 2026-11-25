@@ -1,12 +1,16 @@
 #ifndef CORE_LIBS_PRX_LIBSCEAGCDRIVER_EXECUTION_INCLUDE_UPSCALEMODE_HPP
 #define CORE_LIBS_PRX_LIBSCEAGCDRIVER_EXECUTION_INCLUDE_UPSCALEMODE_HPP
 
-#include <charconv>
 #include <cmath>
-#include <locale>
-#include <sstream>
 #include <stdexcept>
 #include <string_view>
+#ifdef __APPLE__
+#include <cerrno>
+#include <cfenv>
+#include <xlocale.h>
+#else
+#include <charconv>
+#endif
 
 namespace AgcDriver {
 
@@ -25,13 +29,21 @@ inline UpscaleMode SelectUpscaleMode(const char* upscale, const char* sharpness)
         const std::string_view text(sharpness);
         float value = 0.0f;
 #if defined(__APPLE__)
-        std::istringstream stream(sharpness);
-        stream.imbue(std::locale::classic());
-        stream >> std::noskipws >> value;
-        const auto mantissa = text.substr(0, text.find_first_of("eE"));
-        const bool underflowed = value == 0.0f && mantissa.find_first_of("123456789") != std::string_view::npos;
+        const int savedErrno = errno;
+        const locale_t locale = newlocale(LC_NUMERIC_MASK, "C", nullptr);
+        if (locale == nullptr) throw std::runtime_error("Vulkan presentation: could not create the numeric locale");
+        std::fenv_t environment;
+        std::feholdexcept(&environment);
+        std::fesetround(FE_TONEAREST);
+        errno = 0;
+        char* end = nullptr;
+        value = strtof_l(sharpness, &end, locale);
+        const bool underflowed = value == 0.0f && errno == ERANGE;
+        std::fesetenv(&environment);
+        freelocale(locale);
+        errno = savedErrno;
         const bool decimal = text.front() != '+' && text.find_first_not_of("0123456789eE+-.") == std::string_view::npos;
-        const bool parsed = decimal && stream.eof() && (!stream.fail() || std::fpclassify(value) == FP_SUBNORMAL) && !underflowed;
+        const bool parsed = decimal && end == text.data() + text.size() && !underflowed;
 #else
         const auto [end, error] = std::from_chars(text.data(), text.data() + text.size(), value);
         const bool parsed = error == std::errc{} && end == text.data() + text.size();
