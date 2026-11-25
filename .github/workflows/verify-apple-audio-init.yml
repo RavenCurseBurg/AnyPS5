@@ -20,9 +20,13 @@ jobs:
           python3 - <<'PY'
           import re, subprocess
           from pathlib import Path
-          pattern = re.compile(r'^add_test\(\[=\[((?:guest_audio_(?:in|out)|audio_(?:in|out)|apple_shared_audio)[^\]]*)\]=\] "([^"]+)"', re.M)
-          names = sorted({Path(command).name for path in Path("build").rglob("CTestTestfile.cmake")
-                          for name, command in pattern.findall(path.read_text()) if "/tests/" in command})
+          selection = "^(guest_audio_(in|out)|audio_(in|out)|apple_shared_audio)"
+          inventory = subprocess.check_output(["ctest", "--test-dir", "build", "-N", "-R", selection], text=True, stderr=subprocess.STDOUT)
+          missing = {Path(line.removeprefix("Could not find executable ").strip()).name
+                     for line in inventory.splitlines() if line.startswith("Could not find executable ")}
+          ninja = subprocess.check_output(["ninja", "-C", "build", "-t", "targets", "all"], text=True)
+          binaries = [Path(line.split(": ", 1)[0]).name for line in ninja.splitlines()]
+          names = sorted(missing | {name for name in binaries if re.match(selection, name) and name.endswith("_tests")})
           assert {"apple_shared_audio_init_tests", "guest_audio_in_tests", "guest_audio_out_tests", "audio_out_initialization_tests"} <= set(names), names
           print(len(names), names, flush=True)
           subprocess.run(["cmake", "--build", "build", "--parallel", "4", "--target", *names], check=True)
