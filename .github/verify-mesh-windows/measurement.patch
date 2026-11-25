@@ -1,0 +1,30 @@
+--- a/core/libs/prx/libSceAgcDriver/tests/execution/LayeredVolumeDraw.cpp
++++ b/core/libs/prx/libSceAgcDriver/tests/execution/LayeredVolumeDraw.cpp
+@@ -1,3 +1,4 @@
++#include <chrono>
+ #include "prx/libSceAgcDriver/Execution/include/VulkanDevice.hpp"
+ #include "prx/libSceAgcDriver/Graphics/include/Draw.hpp"
+ #include "prx/libSceAgcDriver/Graphics/include/Pipeline.hpp"
+@@ -263,8 +264,20 @@
+     }
+     if (windowLimit != 0u) {
+         auto context = AgcDriver::VulkanDeviceTestAccess::ContextOf(device);
+-        context.meshLimits.maxMeshOutputLayers = std::min(windowLimit, context.meshLimits.maxMeshOutputLayers);
+-        AgcDriver::Graphics::Draw(context, state, draw, shaders);
++        using Clock = std::chrono::steady_clock;
++        const auto limit = static_cast<std::uint32_t>(std::stoul(std::getenv("VERIFY_MESH_LIMIT")));
++        std::printf("physical layers %u requested %u render layers %u\n",context.meshLimits.maxMeshOutputLayers,limit,state.renderLayers);
++        context.meshLimits.maxMeshOutputLayers = std::min(limit, context.meshLimits.maxMeshOutputLayers);
++        for (unsigned batch=0; batch<14; ++batch) {
++            const auto start = Clock::now();
++            for (unsigned i=0; i<16; ++i) AgcDriver::Graphics::Draw(context, state, draw, shaders);
++            const auto recorded = Clock::now();
++            device.WaitIdle();
++            const auto finished = Clock::now();
++            std::printf("batch %u record_ns %lld total_ns %lld\n",batch,
++                        static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(recorded-start).count()),
++                        static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(finished-start).count()));
++        }
+     } else {
+         device.Draw(state, draw, shaders);
+     }
