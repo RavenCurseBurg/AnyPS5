@@ -1,0 +1,51 @@
+name: Guest resource accounting on POSIX
+
+on:
+  push:
+    branches: [verify/guest-resource-accounting-posix]
+
+permissions:
+  contents: read
+
+jobs:
+  resource-accounting:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - name: Fetch pinned dependencies
+        run: git submodule update --init --recursive --depth 1 --jobs 6
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxext-dev libxrandr-dev libasound2-dev libpulse-dev
+      - name: Configure guest libraries
+        run: |
+          uname -a
+          cmake --version
+          ninja --version
+          c++ --version
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build getrusage and the wait exports
+        run: cmake --build build --parallel 3 --target guest_getrusage_tests guest_kernel_sys_wait_tests
+      - name: Run guest accounting suite
+        run: ctest --test-dir build --no-tests=error -R '^guest_(getrusage$|kernel_sys_wait_)' --repeat until-fail:5 --output-on-failure
+      - name: Check that the new getrusage test distinguishes the parent
+        run: |
+          git show 098c73473f2d4111bc05cf70ac8d1279afc5dab1:core/libs/prx/libkernel/System/src/Process.cpp > core/libs/prx/libkernel/System/src/Process.cpp
+          cmake --build build --parallel 3 --target guest_getrusage_tests
+          if ctest --test-dir build --no-tests=error -R '^guest_getrusage$' --output-on-failure; then
+            echo 'The new guest_getrusage test passed on the old implementation.'
+            exit 1
+          fi
+          git restore -- core/libs/prx/libkernel/System/src/Process.cpp
+          cmake --build build --parallel 3 --target guest_getrusage_tests
+          ctest --test-dir build --no-tests=error -R '^guest_getrusage$' --output-on-failure
