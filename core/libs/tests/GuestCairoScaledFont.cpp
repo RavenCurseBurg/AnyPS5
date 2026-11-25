@@ -144,8 +144,8 @@ void CompareNativeExample(const Example& example) {
     Compare(guestTextExtents, std::bit_cast<CairoTextExtents>(nativeTextExtents), "text extents");
     CompareMetricRasters(guestTextExtents, nativeTextExtents);
 
-    const CairoGlyph testGlyphs[2] = {{1, 0.0, 0.0}, {2, 10.0, 0.0}};
-    const cairo_glyph_t nativeTestGlyphs[2] = {{1, 0.0, 0.0}, {2, 10.0, 0.0}};
+    const CairoGlyph testGlyphs[2] = {{1, 1.5, -2.25}, {2, 10.75, 3.5}};
+    const cairo_glyph_t nativeTestGlyphs[2] = {{1, 1.5, -2.25}, {2, 10.75, 3.5}};
     CairoTextExtents guestGlyphExtents{};
     cairo_text_extents_t nativeGlyphExtents{};
     cairo_scaled_font_glyph_extents(guest, testGlyphs, 2, &guestGlyphExtents);
@@ -184,7 +184,7 @@ void CompareNativeExample(const Example& example) {
                              empty.x_advance, empty.y_advance})
             Check(value == 0, "null text zero extents match pinned Cairo");
 
-        CairoTextExtents emptyGlyphs{};
+        CairoTextExtents emptyGlyphs{1, 2, 3, 4, 5, 6};
         cairo_scaled_font_glyph_extents(guest, nullptr, 0, &emptyGlyphs);
         for (double value : {emptyGlyphs.x_bearing, emptyGlyphs.y_bearing, emptyGlyphs.width,
                              emptyGlyphs.height, emptyGlyphs.x_advance, emptyGlyphs.y_advance})
