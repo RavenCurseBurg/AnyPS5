@@ -1,0 +1,338 @@
+{
+  "fixed/RTX-4060": {
+    "rc": 0,
+    "cases": [
+      [
+        "agc_driver_draw_offset_indices",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned_in_place",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65537",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65537",
+        "run",
+        false
+      ]
+    ],
+    "layer": true,
+    "messages": [],
+    "device": [
+      "Selected GPU name=NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+    ],
+    "regression": 0
+  },
+  "fixed/UHD": {
+    "rc": 0,
+    "cases": [
+      [
+        "agc_driver_draw_offset_indices",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned_in_place",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65537",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65537",
+        "run",
+        false
+      ]
+    ],
+    "layer": true,
+    "messages": [],
+    "device": [
+      "Selected GPU name=Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+    ],
+    "regression": 0
+  },
+  "head/RTX-4060": {
+    "rc": 8,
+    "cases": [
+      [
+        "agc_driver_draw_offset_indices",
+        "fail",
+        true
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned",
+        "fail",
+        true
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned_in_place",
+        "fail",
+        true
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65537",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65537",
+        "run",
+        false
+      ]
+    ],
+    "layer": true,
+    "messages": [],
+    "device": [
+      "Selected GPU name=NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+    ],
+    "regression": 3
+  },
+  "head/UHD": {
+    "rc": 8,
+    "cases": [
+      [
+        "agc_driver_draw_offset_indices",
+        "fail",
+        true
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned",
+        "fail",
+        true
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned_in_place",
+        "fail",
+        true
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65537",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65537",
+        "run",
+        false
+      ]
+    ],
+    "layer": true,
+    "messages": [],
+    "device": [
+      "Selected GPU name=Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+    ],
+    "regression": 3
+  },
+  "parent/RTX-4060": {
+    "rc": 0,
+    "cases": [
+      [
+        "agc_driver_draw_offset_indices",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned_in_place",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65537",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65537",
+        "run",
+        false
+      ]
+    ],
+    "layer": true,
+    "messages": [],
+    "device": [
+      "Selected GPU name=NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+    ],
+    "regression": 0
+  },
+  "parent/UHD": {
+    "rc": 0,
+    "cases": [
+      [
+        "agc_driver_draw_offset_indices",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_draw_offset_indices_poisoned_in_place",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65535",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65536",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_indexed_65537",
+        "run",
+        false
+      ],
+      [
+        "agc_driver_runtime_fetch_compact-restart_65537",
+        "run",
+        false
+      ]
+    ],
+    "layer": true,
+    "messages": [],
+    "device": [
+      "Selected GPU name=Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+    ],
+    "regression": 0
+  }
+}
