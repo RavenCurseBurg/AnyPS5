@@ -10,6 +10,9 @@
 #include "prx/libc/include/General.hpp"
 #include "prx/libc/include/PreciseWait.hpp"
 #include "SDL.h"
+#ifdef __APPLE__
+#include "prx/libSceAudioOut/include/AudioOutSdl.hpp"
+#endif
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -80,7 +83,11 @@ bool formatOf(std::uint32_t param, Format& format) {
 
 SDL_AudioDeviceID openDevice(std::uint32_t freq, std::uint32_t samples, const Format& format, std::string_view requestedName) {
     if (!g_sdlAudio) {
+#ifdef __APPLE__
+        if (InitializeSdlAudio_nid_no_patch() < 0) return 0;
+#else
         if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) return 0;
+#endif
         g_sdlAudio = true;
     }
     SDL_AudioSpec desired{};
