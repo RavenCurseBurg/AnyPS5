@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -170,18 +171,44 @@ void CheckCap(AgcDriver::VulkanDevice& device, const GuestBlock& block, std::uin
     std::cout << "batch cap " << cap << ": " << site << " checked\n";
 }
 
-int RunCap(std::uint64_t expected) {
-    Require(DriverTestAccess::BatchCap() == expected, "batch cap: the cap is " + std::to_string(DriverTestAccess::BatchCap()) + ", expected " + std::to_string(expected));
+void CheckIdleLabel(AgcDriver::VulkanDevice& device, GuestBlock& block, bool immediate, bool packets) {
+    const std::string site = packets ? "the flush between packets" : "the commit of a draw";
+    OpenBatch(device, block);
+    auto& label = block.Data().label;
+    const std::uint32_t value = 0x12345678;
+    Require(device.WriteLabelOnGpu(reinterpret_cast<std::uintptr_t>(&label), std::as_bytes(std::span(&value, 1)), 1, 0, false) == 0, "idle deadline: the label was not recorded");
+    Recorder::CloseLabelGroup(AgcDriver::GuestMemory::TrackerGeneration());
+    Require(Recorder::PendingLabelSince().has_value(), "idle deadline: the label is not pending");
+    const auto epoch = device.SubmittedEpoch();
+    auto* recorder = Recorder::Active();
+    const auto serial = recorder->OpenBatchSerial();
+    Fire(device, packets);
+    if (immediate) {
+        Require(device.SubmittedEpoch() == epoch + 1 && recorder->OpenBatchSerial() == 0, "idle deadline: " + site + " did not submit the due label");
+    } else {
+        Require(device.SubmittedEpoch() == epoch && recorder->OpenBatchSerial() == serial, "idle deadline: " + site + " submitted at the waiter deadline");
+        std::lock_guard gpuLock(AgcDriver::GuestMemory::GpuMutex());
+        device.SubmitRecorded(false);
+    }
+    device.WaitIdle();
+    Require(label == value, "idle deadline: " + site + " lost the label value");
+}
+
+int RunDeviceCase(const std::string& mode, std::uint64_t expected) {
+    if (mode == "cap") Require(DriverTestAccess::BatchCap() == expected, "batch cap: the cap is " + std::to_string(DriverTestAccess::BatchCap()) + ", expected " + std::to_string(expected));
     std::shared_ptr<AgcDriver::VulkanDevice> device = OpenVulkanTestDevice();
     if (device == nullptr) return VulkanTestSkipped;
     DriverTestAccess::UseDevice(device);
     {
         GuestBlock block;
-        for (const bool packets : {false, true}) CheckCap(*device, block, expected, packets);
+        for (const bool packets : {false, true}) {
+            if (mode == "cap") CheckCap(*device, block, expected, packets);
+            else CheckIdleLabel(*device, block, expected != 0, packets);
+        }
     }
     device.reset();
     DriverTestAccess::Stop();
-    std::cout << "batch cap test passed\n";
+    std::cout << (mode == "cap" ? "batch cap" : "idle label") << " test passed\n";
     return 0;
 }
 
@@ -228,7 +255,7 @@ int main(int argc, char** argv) {
     const std::string mode = argc > 1 ? argv[1] : "cap";
     const std::uint64_t expected = argc > 2 ? std::strtoull(argv[2], nullptr, 10) : 512;
     try {
-        if (mode == "cap") return RunCap(expected);
+        if (mode == "cap" || mode == "idle-label") return RunDeviceCase(mode, expected);
         if (mode == "wait") return RunWait(expected);
         throw std::runtime_error("batch cap: unknown mode " + mode);
     } catch (const std::exception& error) {
