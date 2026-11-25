@@ -1,6 +1,8 @@
 name: macOS full
 
 on:
+  push:
+    branches: [verify/full-macos-ci-prerequisites]
   schedule:
     - cron: '17 4 * * *'
   workflow_dispatch:
@@ -15,7 +17,7 @@ concurrency:
 jobs:
   full:
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v7
         with:
@@ -24,6 +26,55 @@ jobs:
       - run: sudo softwareupdate --install-rosetta --agree-to-license
       - run: git submodule update --init --recursive --depth 1 --jobs 8
       - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_OSX_ARCHITECTURES=x86_64
-      - run: cmake --build build --parallel 6
+      - name: Compare the proposed and corrected CTest list paths
+        run: |
+          sw_vers
+          uname -m
+          ctest --version
+          df -h .
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          path = Path(".github/macos-full-expected-failures.txt")
+          expected = {line for line in path.read_text().splitlines() if line and not line.startswith("#")}
+          args = ["ctest", "--test-dir", "build"]
+          original = subprocess.run([*args, "-N", "--exclude-from-file", str(path)], capture_output=True, text=True)
+          print("Original path exit", original.returncode, original.stderr, flush=True)
+          def names(*extra):
+              listing = subprocess.check_output([*args, "--show-only=json-v1", *extra])
+              return {test["name"] for test in json.loads(listing)["tests"]}
+          registered = names()
+          selected = names("--exclude-from-file", str(path.resolve()))
+          removed = registered - selected
+          print(f"Registered {len(registered)}, selected {len(selected)}, excluded {len(removed)}")
+          print("Excluded names", sorted(removed))
+          print("Absent from the configured test inventory", sorted(expected - registered))
+          assert removed == expected & registered
+          (Path(os.environ["RUNNER_TEMP"]) / "previously-excluded.txt").write_text("\n".join(sorted(removed)) + "\n")
+          PY
+      - id: build
+        run: cmake --build build --parallel 6
+      - name: Inspect test commands after the proposed default build
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+          tests = json.loads(subprocess.check_output(["ctest", "--test-dir", "build", "--show-only=json-v1"]))["tests"]
+          missing = [test["name"] for test in tests if not test.get("command")]
+          print(f"{len(missing)} tests without a command out of {len(tests)}. First 20: {missing[:20]}")
+          PY
+          df -h .
       - name: Run CPU tests
-        run: ctest --test-dir build --output-on-failure --timeout 120 --parallel 6 --no-tests=error --exclude-from-file "$GITHUB_WORKSPACE/.github/macos-full-expected-failures.txt"
+        run: ctest --test-dir build --output-on-failure --timeout 120 --parallel 6 --no-tests=error --exclude-from-file "$GITHUB_WORKSPACE/.github/macos-full-expected-failures.txt" --output-junit "$RUNNER_TEMP/macos-full.xml"
+      - name: Recheck the currently excluded tests
+        if: always() && steps.build.outcome == 'success'
+        continue-on-error: true
+        run: ctest --test-dir build --output-on-failure --timeout 120 --parallel 3 --no-tests=error --tests-from-file "$RUNNER_TEMP/previously-excluded.txt" --output-junit "$RUNNER_TEMP/macos-excluded.xml"
+      - name: Keep CTest results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-ctest-results
+          path: |
+            ${{ runner.temp }}/macos-full.xml
+            ${{ runner.temp }}/macos-excluded.xml
+          if-no-files-found: ignore
