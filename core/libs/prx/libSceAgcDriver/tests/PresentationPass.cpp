@@ -21,6 +21,7 @@
 #include <cstring>
 #include <functional>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -850,7 +851,9 @@ void upscaleModeTests() {
     for (const char* value : {"FSR", "fsr1", "bilinear", " fsr", "fsr "}) {
         Require(refused([value] { static_cast<void>(SelectUpscaleMode(value, nullptr)); }), std::string("ANYPS5_UPSCALE accepted ") + value);
     }
-    for (const char* value : {"-0.1", "2.01", "abc", "0.5x", "nan", "inf", " 1", "1 "}) {
+    Require(SelectUpscaleMode("fsr", ".5e+0").sharpness == 0.5f && SelectUpscaleMode("fsr", "1e-45").sharpness == std::numeric_limits<float>::denorm_min(),
+            "decimal exponents and representable subnormal sharpness values must be accepted");
+    for (const char* value : {"-0.1", "2.01", "abc", "0.5x", "nan", "inf", " 1", "1 ", "+1", "0x1p0", "1e-90", "1,5"}) {
         Require(refused([value] { static_cast<void>(SelectUpscaleMode("fsr", value)); }), std::string("ANYPS5_FSR_SHARPNESS accepted ") + value);
     }
 }
