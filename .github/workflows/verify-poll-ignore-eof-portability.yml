@@ -1,0 +1,50 @@
+name: Verify POLLINIGNEOF on Linux and Darwin
+on:
+  push:
+    branches: [verify/poll-ignore-eof-portability]
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: git submodule update --init --recursive --depth 1 --jobs 6
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxext-dev libxrandr-dev libasound2-dev libpulse-dev
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - run: cmake --build build --parallel 3 --target guest_poll_tests guest_net_kernel_forwards_tests
+      - run: ctest --test-dir build --no-tests=error -R '^guest_(poll|sce_net_kernel_forwards)$' --repeat until-fail:5 --output-on-failure
+  macos:
+    runs-on: macos-15-intel
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Darwin socket and pipe predicates with AppleClang
+        run: python3 .github/verify-poll-portability/native.py
+      - name: Select Homebrew GCC for the guest C++ exception ABI
+        if: always()
+        run: |
+          for version in 16 15 14; do
+            if command -v g++-"$version" >/dev/null; then
+              echo "CC=$(command -v gcc-"$version")" >> "$GITHUB_ENV"
+              echo "CXX=$(command -v g++-"$version")" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          exit 1
+      - name: Initialize dependencies
+        if: always()
+        run: git submodule update --init --recursive --depth 1 --jobs 6
+      - name: Build and run the PR's guest CTests
+        if: always()
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_OBJC_COMPILER=clang -DCMAKE_OBJCXX_COMPILER=clang++
+          cmake --build build --parallel 3 --target guest_poll_tests guest_net_kernel_forwards_tests
+          ctest --test-dir build --no-tests=error -R '^guest_(poll|sce_net_kernel_forwards)$' --repeat until-fail:5 --output-on-failure
