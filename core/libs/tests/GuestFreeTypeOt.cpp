@@ -527,6 +527,21 @@ void MultiMaster(decltype(&FT_Get_Multi_Master_nid_postfix) query) {
     Require(forwarded.finish(guestLibrary) == 0 && FT_Done_FreeType(nativeLibrary) == 0, "release multi-master libraries");
 }
 
+void FontFormatAndSfnt(decltype(&FT_Get_Font_Format_nid_postfix) getFormat,
+                       decltype(&FT_Get_Sfnt_Table_nid_postfix) getTable) {
+    Require(getFormat(nullptr) == nullptr, "null face font format");
+    Require(getTable(nullptr, 0) == nullptr, "null face sfnt table");
+    FreeType::GuestLibrary* library = nullptr;
+    FreeType::GuestFaceRec* face = nullptr;
+    Require(forwarded.init(&library) == 0, "init font format library");
+    const auto font = SquareGlyphFont('A', 800);
+    Require(forwarded.newMemoryFace(library, font.data(), font.size(), 0, &face) == 0, "open font format face");
+    const char* format = getFormat(face);
+    Require(format && std::strcmp(format, "TrueType") == 0, "font format TrueType");
+    Require(getTable(face, 0) != nullptr, "valid sfnt head table");
+    Require(forwarded.doneFace(face) == 0 && forwarded.finish(library) == 0, "release font format face and library");
+}
+
 void Outlines() {
     std::vector<GuestVector> points{{0, 0}, {640, 0}, {640, 640}, {0, 640}, {64, 64}, {320, 576}, {576, 64}, {320, 32}, {200, 100}};
     std::vector<unsigned char> tags{FT_CURVE_TAG_ON, FT_CURVE_TAG_ON, FT_CURVE_TAG_CONIC, FT_CURVE_TAG_ON,
@@ -716,6 +731,16 @@ int main(int argc, char** argv) {
     Resolve(multiMaster, library, patched, "pORpGtdlfqQ", "FT_Get_Multi_Master_nid_postfix");
 #endif
     MultiMaster(multiMaster);
+    decltype(&FT_Get_Font_Format_nid_postfix) fontFormat = nullptr;
+    decltype(&FT_Get_Sfnt_Table_nid_postfix) sfntTable = nullptr;
+#ifdef _WIN32
+    Resolve(fontFormat, library, patched, "N1S26TrBLLk", "FT_Get_Font_FormatForward_nid_no_patch");
+    Resolve(sfntTable, library, patched, "omDz0x8lyHk", "FT_Get_Sfnt_TableForward_nid_no_patch");
+#else
+    Resolve(fontFormat, library, patched, "N1S26TrBLLk", "FT_Get_Font_Format_nid_postfix");
+    Resolve(sfntTable, library, patched, "omDz0x8lyHk", "FT_Get_Sfnt_Table_nid_postfix");
+#endif
+    FontFormatAndSfnt(fontFormat, sfntTable);
     Resolve(ot.decompose, library, patched, "++lgV9pRsO4", "FT_Outline_Decompose_nid_postfix");
     if (forwards) {
         Resolve(strokers.init, library, patched, "GNsiLzm4SH8", "FT_Init_FreeType_nid_postfix");
