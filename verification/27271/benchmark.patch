@@ -1,0 +1,72 @@
+--- a/core/libs/prx/libSceAgcDriver/tests/execution/DrawOffsetIndices.cpp
++++ b/core/libs/prx/libSceAgcDriver/tests/execution/DrawOffsetIndices.cpp
+@@ -1,3 +1,4 @@
++#include <chrono>
+ #include "prx/libSceAgcDriver/Execution/include/Driver/Driver.hpp"
+ #include "prx/libSceAgcDriver/Execution/include/VulkanDevice.hpp"
+ #include "prx/libSceAgcDriver/Graphics/include/Draw.hpp"
+@@ -418,7 +419,17 @@
+         } else {
+             auto state = State(false, restartStrip);
+             state.quadList = quadList;
+-            device->Draw(state, draw, shaders);
++            if (std::getenv("VERIFY_INDEX_COUNT")) {
++                using Clock = std::chrono::steady_clock;
++                const auto start = Clock::now();
++                for (unsigned i = 0; i < 12; ++i) device->Draw(state, draw, shaders);
++                const auto recorded = Clock::now();
++                device->WaitIdle();
++                const auto finished = Clock::now();
++                std::printf("benchmark record_ns=%lld total_ns=%lld\n",
++                    static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(recorded-start).count()),
++                    static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(finished-start).count()));
++            } else device->Draw(state, draw, shaders);
+         }
+         device->WaitIdle();
+     }
+@@ -540,6 +551,35 @@
+     return std::equal(expected.begin(), expected.end(), Output.begin()) ? "" : "runtime-fetched VertexIndex was changed\n";
+ }
+ 
++void CheckImportedIndices(Fixture& fixture) {
++    constexpr std::size_t blockBytes = 2u << 20u;
++    auto* block = AllocateWatched(blockBytes, 65536);
++    Require(block != nullptr, "write-watched index block unavailable");
++    GuestAllocations::Mutation().Add(block, blockBytes, true, true, true);
++    struct Release {
++        void* memory;
++        ~Release() {
++            GuestAllocations::Mutation().Remove(memory);
++            ReleaseWatched(memory, blockBytes);
++        }
++    } release{block};
++    const auto address = reinterpret_cast<std::uintptr_t>(block);
++    const auto vertex = fixture.Vertex(RuntimeFetchCode, fixture.UserData(0, 0), true);
++    Require(vertex.vertexAttributes.empty(), "the fixture must use shader vertex pulling");
++    VertexSlots.fill(0);
++    InstanceSlots.fill(0);
++    const unsigned count = static_cast<unsigned>(std::stoul(std::getenv("VERIFY_INDEX_COUNT")));
++    const bool allRestart = std::string(std::getenv("VERIFY_INDEX_MODE")) == "all-restart";
++    const std::vector<std::uint16_t> indices(count, allRestart ? 0xffffu : 9u);
++    AgcDriver::GuestMemory::Write(address, std::as_bytes(std::span{indices}));
++    for (unsigned batch=0; batch<11; ++batch) {
++        const AgcDriver::Pm4::DrawParameters draw{address, count, 2, 1, 0, true, 0, 0};
++        fixture.Draw(vertex, draw, allRestart);
++        if (allRestart) Require(std::ranges::all_of(Output, [](auto w){return w==Unwritten;}), "all-restart draw wrote output");
++        else Require(Output[0]==9 && Output[1]==0 && Output[2]==9 && Output[3]==0, "ordinary draw lost its output");
++    }
++}
++
+ std::string Run(Fixture& fixture) {
+     std::string failures = Analysis(fixture);
+     const std::array<std::uint32_t, Vertices> autoIndices{0, 1, 2};
+@@ -749,7 +789,8 @@
+         if (!device) return VulkanTestSkipped;
+         Fixture fixture(device);
+         std::string failures;
+-        if (argc == 1) failures = Run(fixture);
++        if (argc==2 && std::string(argv[1])=="--bench-imported-indices") CheckImportedIndices(fixture);
++        else if (argc == 1) failures = Run(fixture);
+         else {
+             Require(argc == 3 || argc == 4, "expected runtime-fetch INDEX [compact-restart]");
+             Require(std::string(argv[1]) == "runtime-fetch", "unknown case");

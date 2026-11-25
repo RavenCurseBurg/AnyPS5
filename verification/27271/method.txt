@@ -1,0 +1,44 @@
+PR 27271, imported vertex-pulling index buffers
+
+The three source revisions are c032ba7c5273 (parent), 83800e1313b9 (PR),
+and 3b220a706107 (restart fix and counter regression). All binaries were
+Release builds made with WinLibs GCC 15.2.0 r7 on Windows 11 build 26100.
+The GPUs were a GeForce RTX 4060, driver 595.79, and Intel UHD 770,
+driver 101.5973.
+
+Correctness
+
+Use the same DrawOffsetIndices.cpp from f1ef0372c713 on each revision.
+Build agc_driver_draw_offset_indices_tests and run the registered cases.
+
+  ctest --test-dir build -V -R "^agc_driver_(runtime_fetch_|draw_offset_indices)"
+
+Set ANYPS5_REQUIRE_VULKAN=1, ANYPS5_NO_SHADER_CACHE=1,
+VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation and VK_LOADER_DEBUG=layer.
+Select the adapter with ANYPS5_GPU. Every run loaded Khronos validation
+1.4.369. gpu-ctests.json contains all 54 case results and any validation IDs.
+
+CPU recording time
+
+Apply benchmark.patch to each revision and rebuild the same executable.
+Run agc_driver_draw_offset_indices_tests --bench-imported-indices with
+ANYPS5_GPU set to the adapter, ANYPS5_REQUIRE_VULKAN=1,
+ANYPS5_NO_SHADER_CACHE=1, APS5_NO_PIPELINE_JOURNAL=1 and
+APS5_DRAW_INPUTS_IN_PLACE=1. Leave validation and tracing off for timing.
+Set VERIFY_INDEX_COUNT to 4095 or 32766, and VERIFY_INDEX_MODE to ordinary
+or all-restart. The patch changes the test fixture only.
+
+The fixture submits 12 identical indexed draws per batch from a registered
+2 MiB write-watched allocation. The ordinary triangle-list indices are all
+9. The restart-enabled triangle-strip indices are all 0xffff. The vertex
+shader pulls data without a Vulkan vertex attribute. Each batch checks its
+GPU output after the queue becomes idle. The ordinary draw writes vertex
+index 9. The restart-only draw leaves all output words at the sentinel.
+
+Each process ran 11 batches. The first three warmed up the device. For each
+GPU, index count and mode, all six orders of the three executables were run
+once. cpu-timings.csv contains the 1152 measured batches from 144 processes.
+record_us ends after recording the 12 draws. total_us includes WaitIdle.
+Both values are normalized per draw. summary.json reports the median of
+process medians. Paired ratios compare process medians within each trial.
+The 95% intervals resample the six pairs 10000 times.
