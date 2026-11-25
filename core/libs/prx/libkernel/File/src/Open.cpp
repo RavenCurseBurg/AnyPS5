@@ -321,6 +321,7 @@ static int OpenNative(const std::filesystem::path& native, int requestedFlags, s
     int fd = NativeOpen(native, MapFlags(flags), mode);
 #endif
 #ifdef __APPLE__
+    if (fd < 0 && lockedAtOpen && errno == EWOULDBLOCK) return SCE_KERNEL_ERROR_EWOULDBLOCK;
     if (fd >= 0 && (flags & (SCE_KERNEL_O_CREAT | SCE_KERNEL_O_EXCL)) == SCE_KERNEL_O_CREAT) {
         struct stat opened{};
         if (::fstat(fd, &opened) == 0 && S_ISDIR(opened.st_mode)) {

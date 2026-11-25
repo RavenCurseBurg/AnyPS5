@@ -11,7 +11,7 @@ jobs:
     env:
       ORIGINAL: 8f69906fdb5ec3ddf4df0d4800dbf082dd8f9e7d
       PORTABLE: 20653dabd8be78a92711956253d2c71de4f7fec1
-      DARWIN: 9d432a9ca6cf9a9b3fce8f6bec546f318853599a
+      DARWIN: 6bc5af659a2e4fcfec90b606dfe51c91539c1f68
       PROBE: .github/diagnostics/locked-open/prepare.py
     steps:
       - uses: actions/checkout@v7
@@ -52,7 +52,9 @@ jobs:
           cmake --build build --parallel 5 --target guest_locked_open_focused
           ctest --test-dir build -V --no-tests=error --repeat until-fail:5 -R '^guest_locked_open_focused$'
       - name: Exercise actual archive and plain-file opens on the Darwin implementation
+        if: ${{ !cancelled() }}
         run: |
+          python3 "$PROBE" "$DARWIN" "$DARWIN"
           python3 - <<'PY'
           from pathlib import Path
           p = Path("core/libs/tests/GuestKernelAppArchive.cpp")
