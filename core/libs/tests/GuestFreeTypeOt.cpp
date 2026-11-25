@@ -1,4 +1,5 @@
 #include "FreeTypeFontFixture.hpp"
+#include "FreeTypeVariationFontFixture.hpp"
 #include "FontFixture.hpp"
 #include "Type1Fixture.hpp"
 #include "prx/libSceFreeTypeOt/libSceFreeTypeOt.hpp"
@@ -538,6 +539,13 @@ void CharVariants(decltype(&FT_Face_GetCharVariantIndex_nid_postfix) getIndex,
     Require(forwarded.newMemoryFace(library, font.data(), font.size(), 0, &face) == 0, "open font for char variant");
     Require(getIndex(face, 'A', 0xFE0F) == 0, "font char variant index");
     Require(isDefault(face, 'A', 0xFE0F) == -1, "font char variant is default");
+    Require(forwarded.doneFace(face) == 0, "release face without char variants");
+    const auto variants = FontFixture::VariationFont(true, true);
+    Require(forwarded.newMemoryFace(library, variants.data(), variants.size(), 0, &face) == 0, "open variation-selector font");
+    Require(getIndex(face, 'A', 0xFE0F) == 1, "default variation glyph");
+    Require(isDefault(face, 'A', 0xFE0F) == 1, "default variation sequence");
+    Require(getIndex(face, 'A', 0xE0100) == 3, "non-default variation glyph");
+    Require(isDefault(face, 'A', 0xE0100) == 0, "non-default variation sequence");
     Require(forwarded.doneFace(face) == 0 && forwarded.finish(library) == 0, "release char variant face and library");
 }
 
