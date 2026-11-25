@@ -1,0 +1,145 @@
+name: Complete the Windows guest test selection for PR 26912
+'on':
+  push:
+    branches:
+    - verify/26912-windows-full-selection
+permissions:
+  contents: read
+env:
+  CONFIGURE: -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 300
+    env:
+      WINLIBS_RELEASE: 15.2.0posix-14.0.0-ucrt-r7
+      WINLIBS_ZIP: winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64ucrt-14.0.0-r7.zip
+      WINLIBS_SHA256: cb2fbad6162540cdf5e1facdce08d4dac359e8cf64f7f696a99274291763b815
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        ref: e54978d9e694c3ba9de39d32bc3e71445b0b77eb
+        persist-credentials: false
+        fetch-depth: 3
+    - name: Verify the exact contributor head and original PR file list
+      run: |
+        test "$(git rev-parse HEAD)" = e54978d9e694c3ba9de39d32bc3e71445b0b77eb
+        git diff --name-only efa58e842933cabead9ac85eb4c058cd08ae1cca HEAD > "$RUNNER_TEMP/26912-inputs.txt"
+        printf "%s\n" tools/build_changed_guest_tests.py tools/tests/test_build_changed_guest_tests.py | diff - "$RUNNER_TEMP/26912-inputs.txt"
+    - id: submodules
+      name: Key the submodules on their commits
+      run: |
+        echo "key=$(git ls-files -s | awk '$1 == "160000" { print $2, $4 }' | cat - .gitmodules | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+        echo "ffmpeg=$(git rev-parse HEAD:3rdparty/ffmpeg-core)" >> "$GITHUB_OUTPUT"
+    - id: submodule-cache
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ runner.temp }}/submodule-gitdirs.tar
+        key: submodule-gitdirs-${{ runner.os }}-${{ steps.submodules.outputs.key }}
+    - name: Check out the submodules
+      run: |
+        if [ -f "$RUNNER_TEMP/submodule-gitdirs.tar" ]; then tar --force-local -xf "$RUNNER_TEMP/submodule-gitdirs.tar"; fi
+        git submodule update --init --recursive --depth 1 --jobs 8
+    - if: steps.submodule-cache.outputs.cache-hit != 'true'
+      run: tar --force-local -cf "$RUNNER_TEMP/submodule-gitdirs.tar" .git/modules
+    - if: steps.submodule-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: ${{ runner.temp }}/submodule-gitdirs.tar
+        key: submodule-gitdirs-${{ runner.os }}-${{ steps.submodules.outputs.key }}
+    - name: Point the WinLibs CMake at the CA bundle of Git for Windows
+      run: |
+        for prefix in ucrt64 mingw64; do
+          bundle="C:/Program Files/Git/$prefix/etc/ssl/certs/ca-bundle.crt"
+          if [ -f "$bundle" ]; then echo "SSL_CERT_FILE=$bundle" >> "$GITHUB_ENV"; exit 0; fi
+        done
+        echo "::error::No CA bundle found in Git for Windows"; exit 1
+    - id: toolchain
+      uses: actions/cache@v6
+      with:
+        path: C:\winlibs
+        key: ${{ env.WINLIBS_ZIP }}
+    - if: steps.toolchain.outputs.cache-hit != 'true'
+      run: |
+        curl -sSfL -o "$RUNNER_TEMP/winlibs.zip" "https://github.com/brechtsanders/winlibs_mingw/releases/download/$WINLIBS_RELEASE/$WINLIBS_ZIP"
+        echo "$WINLIBS_SHA256  $RUNNER_TEMP/winlibs.zip" | sha256sum -c -
+        7z x "$RUNNER_TEMP/winlibs.zip" -oC:/winlibs > /dev/null
+    - run: echo 'C:\winlibs\mingw64\bin' >> "$GITHUB_PATH"
+    - uses: hendrikmuhs/ccache-action@v1.2.24
+      with:
+        key: ${{ github.event_name == 'workflow_dispatch' && 'dispatch-windows' || 'windows' }}
+        restore-keys: ${{ github.event_name == 'workflow_dispatch' && 'windows' || '' }}
+        save: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+        evict-old-files: job
+    - id: ffmpeg-cache
+      uses: actions/cache/restore@v6
+      with:
+        path: build/externals
+        key: ffmpeg-${{ runner.os }}-winlibs-${{ env.WINLIBS_ZIP }}-${{ steps.submodules.outputs.ffmpeg }}
+    - id: seed-cache
+      uses: actions/cache/restore@v6
+      with:
+        path: configure-seed.cmake
+        key: configure-seed-${{ env.WINLIBS_ZIP }}-${{ steps.submodules.outputs.key }}-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'core/libs/CMakeLists.txt', 'tools/configure_seed.py', '.github/workflows/build.yml') }}
+    - shell: bash
+      run: mkdir -p build/.cmake/api/v1/query && touch build/.cmake/api/v1/query/codemodel-v2
+    - shell: cmd
+      run: if exist configure-seed.cmake (cmake -C configure-seed.cmake -S . -B build %CONFIGURE% "-DANYPS5_VIDEO_OUT_TEST_DRIVER=windows" "-DANYPS5_AGC_EXECUTION_TESTS=F16ToF32Unpack;F64FmaSubnormals;RegistrationPrepareShutdown") else (cmake -S . -B build %CONFIGURE% "-DANYPS5_VIDEO_OUT_TEST_DRIVER=windows" "-DANYPS5_AGC_EXECUTION_TESTS=F16ToF32Unpack;F64FmaSubnormals;RegistrationPrepareShutdown")
+    - if: steps.seed-cache.outputs.cache-hit != 'true'
+      shell: cmd
+      run: python tools/configure_seed.py build/CMakeCache.txt configure-seed.cmake
+    - if: steps.seed-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: configure-seed.cmake
+        key: ${{ steps.seed-cache.outputs.cache-primary-key }}
+    - if: steps.ffmpeg-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      continue-on-error: true
+      with:
+        path: build/externals
+        key: ${{ steps.ffmpeg-cache.outputs.cache-primary-key }}
+    - name: Check that every test executable is registered with ctest
+      shell: cmd
+      run: python tools/check_test_registration.py build
+    - name: List changed files for host-only test linking
+      env:
+        BASE: efa58e842933cabead9ac85eb4c058cd08ae1cca
+      run: git diff --name-only "$BASE" HEAD > changed.txt
+    - name: Link changed host-only core/libs test executables
+      shell: cmd
+      run: python tools/build_mingw_host_only_tests.py build changed.txt
+    - name: Build and run changed core/libs tests
+      shell: cmd
+      run: python tools/build_changed_guest_tests.py build changed.txt --output-log ctest.log
+      id: selected
+    - name: Report compiler cache statistics
+      if: ${{ !cancelled() }}
+      run: ccache --show-stats
+    - name: Report tests slower than 30 s
+      if: ${{ !cancelled() }}
+      shell: bash
+      run: |
+        [ -f ctest.log ] || exit 0
+        awk '/Test +#[0-9]+: / && $NF == "sec" { for (i = 1; i <= NF; i++) if ($i ~ /^#[0-9]+:$/) name = $(i + 1); t = $(NF - 1) + 0; if (t > max[name]) max[name] = t }
+          END { for (name in max) if (max[name] > 30) printf "::warning title=Slow test::%s took %.1f s on %s; tests must finish in 30 s (CONTRIBUTING.md)\n", name, max[name], ENVIRON["RUNNER_OS"] }' ctest.log
+    - name: Repeat any failed guest tests on the same untouched tree
+      if: ${{ !cancelled() && steps.selected.outcome == 'failure' && hashFiles('build/Testing/Temporary/LastTestsFailed.log') != '' }}
+      run: |
+        cp build/Testing/Temporary/LastTestsFailed.log original-failures.txt
+        ctest --test-dir build --rerun-failed --output-on-failure --timeout 120 --output-junit isolated-recheck.xml
+    - name: Preserve the full guest-test results
+      if: ${{ !cancelled() && hashFiles('ctest.log') != '' }}
+      uses: actions/upload-artifact@v5
+      with:
+        name: 26912-windows-guest-tests
+        path: |-
+          ctest.log
+          original-failures.txt
+          isolated-recheck.xml
+        retention-days: 7
