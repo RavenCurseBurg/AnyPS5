@@ -1,0 +1,27 @@
+name: Darwin poll and shutdown comparisons
+on:
+  push:
+    branches: [verify/darwin-poll-semantics]
+permissions:
+  contents: read
+jobs:
+  darwin:
+    runs-on: macos-15-intel
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: git submodule update --init --recursive --depth 1 --jobs 6
+      - run: python3 .github/verify-darwin-poll.py prepare
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - run: cmake --build build --parallel 3 --target guest_poll_tests guest_net_kernel_forwards_tests
+      - name: Probe the original PR implementation with its guest fixtures
+        run: python3 .github/verify-darwin-poll.py run
+      - name: Switch only the poll implementation to its parent
+        run: |
+          git fetch --depth 1 origin 098c73473f2d4111bc05cf70ac8d1279afc5dab1
+          git restore --source=FETCH_HEAD -- core/libs/prx/libkernel/Socket/src/Udp.cpp
+          cmake --build build --parallel 3 --target guest_poll_tests guest_net_kernel_forwards_tests
+      - name: Probe the parent with the same guest fixtures
+        run: python3 .github/verify-darwin-poll.py run
