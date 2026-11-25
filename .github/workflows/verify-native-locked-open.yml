@@ -1,0 +1,68 @@
+name: Verify native Darwin guest open locks
+on:
+  push:
+    branches: [verify/darwin-native-locked-open]
+permissions:
+  contents: read
+jobs:
+  lock:
+    runs-on: macos-15-intel
+    timeout-minutes: 50
+    env:
+      ORIGINAL: 8f69906fdb5ec3ddf4df0d4800dbf082dd8f9e7d
+      PORTABLE: 20653dabd8be78a92711956253d2c71de4f7fec1
+      DARWIN: 9d432a9ca6cf9a9b3fce8f6bec546f318853599a
+      PROBE: .github/diagnostics/locked-open/prepare.py
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 5
+          persist-credentials: false
+      - name: Prepare the macOS build
+        run: |
+          sw_vers
+          git submodule update --init --recursive --depth 1 --jobs 8
+          git fetch --no-tags --depth=2 origin 792743bddcaf164f8f8aac7df8ce1d7d1336fc2b
+          git diff FETCH_HEAD^ FETCH_HEAD | git apply
+          python3 "$PROBE" "$ORIGINAL" "$ORIGINAL"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Run the original PR's locking assertions on the original guest library
+        run: |
+          cmake --build build --parallel 5 --target guest_locked_open_focused
+          ctest --test-dir build -V --no-tests=error --repeat until-fail:3 -R '^guest_locked_open_focused$'
+      - name: Run both added nonblocking contention cases on the portable fix
+        run: |
+          python3 "$PROBE" "$PORTABLE" "$PORTABLE"
+          cmake --build build --parallel 5 --target guest_locked_open_focused
+          ctest --test-dir build -V --no-tests=error --repeat until-fail:3 -R '^guest_locked_open_focused$'
+      - name: Confirm the portable path still throws for uncontended read-only truncation
+        run: |
+          python3 "$PROBE" "$PORTABLE" "$DARWIN"
+          cmake --build build --parallel 5 --target guest_locked_open_focused
+          python3 - <<'PY'
+          import subprocess
+          p = subprocess.run(["ctest", "--test-dir", "build", "-V", "--no-tests=error", "-R", "^guest_locked_open_focused$"],
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+          print(p.stdout, flush=True)
+          assert p.returncode and "guest locking exception: open with O_RDONLY, O_TRUNC and O_SHLOCK or O_EXLOCK" in p.stdout
+          PY
+      - name: Test native Darwin locks, descriptor access mode and file sizes
+        run: |
+          python3 "$PROBE" "$DARWIN" "$DARWIN"
+          cmake --build build --parallel 5 --target guest_locked_open_focused
+          ctest --test-dir build -V --no-tests=error --repeat until-fail:5 -R '^guest_locked_open_focused$'
+      - name: Exercise actual archive and plain-file opens on the Darwin implementation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("core/libs/tests/GuestKernelAppArchive.cpp")
+          s = p.read_text()
+          anchor = "void Refusals() {"
+          assert s.count(anchor) == 1
+          s = s.replace(anchor, anchor + '''
+              Check(NotImplemented([] { (void)sceKernelOpen("/app0/Data/Small.txt", SCE_KERNEL_O_RDONLY | SCE_KERNEL_O_SHLOCK | SCE_KERNEL_O_NONBLOCK, 0); }));
+              Check(NotImplemented([] { (void)sceKernelOpen("/app0/Data", SCE_KERNEL_O_RDONLY | SCE_KERNEL_O_EXLOCK | SCE_KERNEL_O_NONBLOCK, 0); }));''')
+          p.write_text(s)
+          PY
+          cmake --build build --parallel 5 --target guest_kernel_app_archive_tests
+          ctest --test-dir build -V --no-tests=error --repeat until-fail:3 -R '^guest_kernel_app_archive_(archive|plain)$'
