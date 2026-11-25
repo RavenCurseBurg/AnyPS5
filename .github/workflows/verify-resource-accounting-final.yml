@@ -1,0 +1,30 @@
+name: Verify the portable peak RSS fixture
+on:
+  push:
+    branches: [verify/resource-accounting-final]
+permissions:
+  contents: read
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: git submodule update --init --recursive --depth 1 --jobs 6
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxext-dev libxrandr-dev libasound2-dev libpulse-dev
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - run: cmake --build build --parallel 3 --target guest_getrusage_tests guest_kernel_sys_wait_tests
+      - run: ctest --test-dir build --no-tests=error -R '^guest_(getrusage$|kernel_sys_wait_)' --repeat until-fail:5 --output-on-failure
+  darwin:
+    runs-on: macos-15-intel
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - run: python3 .github/verify-resource-accounting/qualify.py
