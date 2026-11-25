@@ -9,6 +9,25 @@ import progress
 
 
 class FastAnalysisTests(unittest.TestCase):
+    def test_grouped_static_declarations_do_not_hide_a_callback_parameter(self):
+        with tempfile.TemporaryDirectory() as directory:
+            lib = Path(directory) / "libSceGrouped"
+            lib.mkdir()
+            (lib / "Exports.cpp").write_text(
+                "static int APS5_VABI sceFirst(int APS5_VABI sceCallback(int)),\n"
+                "           *APS5_VABI sceSecond(int, int);\n"
+                "static int helper(int APS5_VABI sceAnotherCallback(int)), APS5_VABI sceThird();\n"
+                "int APS5_VABI sceFirst(int APS5_VABI sceCallback(int)) { return sceCallback(3); }\n"
+                "int *APS5_VABI sceSecond(int, int) { return nullptr; }\n"
+                "int APS5_VABI sceThird() { return 0; }\n"
+                "int APS5_VABI sceCallback(int value) { return value; }\n"
+                "int APS5_VABI sceAnotherCallback(int value) { return value; }\n",
+                encoding="utf-8",
+            )
+            group = progress.scan_library(lib)
+            self.assertEqual(group["done_names"], ["sceAnotherCallback", "sceCallback"])
+            self.assertFalse(group["todo_names"])
+
     def test_body_end_fast_and_fallback_paths(self):
         cases = [
             ("{ return 0; }", 0, 12),
