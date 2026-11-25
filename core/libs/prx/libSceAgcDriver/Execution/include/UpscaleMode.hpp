@@ -4,7 +4,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string_view>
-#ifdef __APPLE__
+#if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 260000
 #include <cerrno>
 #include <cfenv>
 #include <xlocale.h>
@@ -28,7 +28,7 @@ inline UpscaleMode SelectUpscaleMode(const char* upscale, const char* sharpness)
     if (sharpness != nullptr && *sharpness != '\0') {
         const std::string_view text(sharpness);
         float value = 0.0f;
-#if defined(__APPLE__)
+#if defined(__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__) && __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 260000
         const int savedErrno = errno;
         const locale_t locale = newlocale(LC_NUMERIC_MASK, "C", nullptr);
         if (locale == nullptr) throw std::runtime_error("Vulkan presentation: could not create the numeric locale");

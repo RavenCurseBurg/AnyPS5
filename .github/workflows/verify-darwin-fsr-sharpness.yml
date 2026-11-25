@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 4
+          fetch-depth: 8
           persist-credentials: false
       - name: Prepare the unmodified header
         run: |
@@ -40,6 +40,7 @@ jobs:
             fi
             grep -E "from_chars.*(unavailable|deleted)|deleted function 'from_chars'" "$RUNNER_TEMP/parent.log"
             xcrun clang++ -std=c++20 -arch x86_64 -mmacosx-version-min=15.0 -I"$SOURCE" "$PROBE/driver.cpp" -o "$RUNNER_TEMP/fixed"
+            xcrun clang++ -std=c++20 -arch arm64 -mmacosx-version-min=15.0 -I"$SOURCE" -c "$PROBE/driver.cpp" -o "$RUNNER_TEMP/fixed-arm64.o"
             python3 "$PROBE/compare.py" "$RUNNER_TEMP/fixed" || status=1
           done
           exit "$status"
@@ -50,9 +51,13 @@ jobs:
           xcrun clang++ -std=c++20 -arch x86_64 -mmacosx-version-min=26.0 -I"$RUNNER_TEMP/parent" "$PROBE/driver.cpp" -o "$RUNNER_TEMP/original"
           xcrun clang++ -std=c++20 -arch x86_64 -mmacosx-version-min=26.0 -I"$SOURCE" "$PROBE/driver.cpp" -o "$RUNNER_TEMP/fixed"
           python3 "$PROBE/compare.py" "$RUNNER_TEMP/fixed" "$RUNNER_TEMP/original"
+          xcrun clang++ -std=c++20 -arch x86_64 -mmacosx-version-min=15.0 -I"$SOURCE" "$PROBE/driver.cpp" -o "$RUNNER_TEMP/backdeploy"
+          python3 "$PROBE/compare.py" "$RUNNER_TEMP/backdeploy"
       - if: ${{ !cancelled() && matrix.os == 'macos-15-intel' }}
         name: Compile both production and test translation units for macOS 15
         run: |
           git submodule update --init --recursive --depth 1 --jobs 8
+          git fetch --no-tags --depth=2 origin 792743bddcaf164f8f8aac7df8ce1d7d1336fc2b
+          git diff FETCH_HEAD^ FETCH_HEAD | git apply
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_OSX_ARCHITECTURES=x86_64
           cmake --build build --parallel 5 --target core/libs/prx/libSceAgcDriver/CMakeFiles/libSceAgcDriver.dir/Execution/src/VulkanDevice.cpp.o core/libs/prx/libSceAgcDriver/CMakeFiles/agc_driver_presentation_pass_tests.dir/tests/PresentationPass.cpp.o
