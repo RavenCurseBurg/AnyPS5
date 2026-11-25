@@ -97,7 +97,7 @@ void APS5_VABI cairo_scaled_font_glyph_extents(CairoScaledFont* font, const Cair
     auto* nativeFont = Backend(font);
     cairo_text_extents_t native{};
     if (num_glyphs <= 0 || glyphs == nullptr) {
-        aps5_cairo_scaled_font_glyph_extents(nativeFont, nullptr, 0, &native);
+        aps5_cairo_scaled_font_glyph_extents(nativeFont, nullptr, num_glyphs, &native);
     } else {
         std::vector<CairoGlyph> guestGlyphs(static_cast<std::size_t>(num_glyphs));
         if (!GuestCopyIn_nid_no_patch(guestGlyphs.data(), glyphs, num_glyphs * sizeof(CairoGlyph))) {

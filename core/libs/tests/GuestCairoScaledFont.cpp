@@ -191,6 +191,14 @@ void CompareNativeExample(const Example& example) {
             Check(value == 0, "null glyphs zero extents match pinned Cairo");
     }
 
+    for (const int count : {-1, 1}) {
+        CairoTextExtents actual{1, 2, 3, 4, 5, 6};
+        cairo_text_extents_t expected{1, 2, 3, 4, 5, 6};
+        cairo_scaled_font_glyph_extents(guest, nullptr, count, &actual);
+        aps5_cairo_scaled_font_glyph_extents(native, nullptr, count, &expected);
+        Compare(actual, std::bit_cast<CairoTextExtents>(expected), "null glyph array with nonzero count");
+    }
+
     const auto invalid = reinterpret_cast<void*>(std::uintptr_t{1});
     Rejects([&] { cairo_scaled_font_get_font_matrix(guest, reinterpret_cast<CairoMatrix*>(invalid)); });
     Rejects([&] { cairo_scaled_font_get_ctm(guest, nullptr); });
