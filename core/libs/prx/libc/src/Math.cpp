@@ -2600,9 +2600,7 @@ static int TrigfRemPio2(float x, double* y) {
     const std::int32_t hx = std::bit_cast<std::int32_t>(x);
     const std::int32_t ix = hx & 0x7fffffff;
     if (ix < 0x4dc90fdb) {
-        volatile double rounded = x * invpio2 + 0x1.8p52;
-        double fn = rounded;
-        fn = fn - 0x1.8p52;
+        const double fn = std::round(x * invpio2);
         const std::int32_t n = static_cast<std::int32_t>(fn);
         const double r = x - fn * pio2_1;
         const double w = fn * pio2_1t;
@@ -2810,8 +2808,7 @@ static int RemPio2(double x, double* y) {
         medium = true;
     }
     if (medium || ix < 0x413921fb) {
-        double fn = x * invpio2 + 0x1.8p52;
-        fn = fn - 0x1.8p52;
+        const double fn = std::round(x * invpio2);
         const std::int32_t n = static_cast<std::int32_t>(fn);
         double r = x - fn * pio2_1;
         double w = fn * pio2_1t;
@@ -2900,8 +2897,7 @@ static int RemPio2lMedium(long double x, long double* y) {
     const long double pio22t = static_cast<long double>(TrigLongPio22tHi) + TrigLongPio22tLo;
     const long double pio23t = static_cast<long double>(TrigLongPio23tHi) + TrigLongPio23tLo;
     const int exponent = ExtendedExponent(x);
-    long double fn = x * invpio2 + 0x1.8p63L;
-    fn = fn - 0x1.8p63L;
+    const long double fn = std::round(x * invpio2);
     const int n = static_cast<int>(fn);
     long double r = x - fn * TrigLongPio21;
     long double w = fn * pio21t;
@@ -3074,12 +3070,10 @@ static long double KernelTanl(long double x, long double y, int iy) {
         return osign * (v - 2.0 * (x - (w * w / (w + v) - r)));
     }
     if (iy == 1) return w;
-    z = w;
-    z = z + 0x1p32 - 0x1p32;
+    z = ClearLowMantissaWord(w);
     v = r - (z - x);
-    long double t = -1.0 / w;
-    const long double a = t;
-    t = t + 0x1p32 - 0x1p32;
+    const long double a = -1.0L / w;
+    const long double t = ClearLowMantissaWord(a);
     s = 1.0 + t * z;
     return t + a * (s + t * v);
 }

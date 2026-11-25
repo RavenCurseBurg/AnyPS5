@@ -2,6 +2,7 @@
 #include "prx/libc/include/general/VabiMacros.hpp"
 #include <bit>
 #include <cerrno>
+#include <cfenv>
 #include <cstdint>
 #include <cmath>
 #include <cstdio>
@@ -155,7 +156,32 @@ static void CheckSincosBits() {
     }
 }
 
+static void CheckDirectedTrigReduction() {
+    const int saved = std::fegetround();
+    for (int mode : {FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO}) {
+        Check(std::fesetround(mode) == 0);
+        for (int sign : {-1, 1}) {
+            const float xf = sign * 0x1.c463acp+3f;
+            Check(NearF(cosf_nid_postfix(xf), -3.57746413644181e-8f, 3.0f));
+            Check(NearF(sinf_nid_postfix(2.0f * xf), sign * -7.154928272883615e-8f, 3.0f));
+            Check(NearF(tanf_nid_postfix(xf), sign * -27952761.002228f, 3.0f));
+            const double x = sign * 0x1.921fb54442d18p+0;
+            Check(Near(cos_nid_postfix(x), 6.1232339957367659e-17, 3.0));
+            Check(Near(sin_nid_postfix(2.0 * x), sign * 1.2246467991473532e-16, 3.0));
+            Check(Near(tan_nid_postfix(x), sign * 1.6331239353195370e16, 3.0));
+            constexpr long double cosine = 6.123233995736765886130329661e-17L;
+            constexpr long double tangent = 16331239353195369.75596773704L;
+            const long double tolerance = 3.0L * std::numeric_limits<long double>::epsilon();
+            Check(std::fabs(cosl_nid_postfix(x) - cosine) <= tolerance * cosine);
+            Check(std::fabs(sinl_nid_postfix(2.0L * x) - sign * 2.0L * cosine) <= tolerance * 2.0L * cosine);
+            Check(std::fabs(tanl_nid_postfix(x) - sign * tangent) <= tolerance * tangent);
+        }
+    }
+    Check(std::fesetround(saved) == 0);
+}
+
 int main() {
+    CheckDirectedTrigReduction();
     CheckSincosBits();
     Check(Near(cbrt_nid_postfix(27.0), 3.0, 1.0));
     Check(Near(cbrt_nid_postfix(-8.0), -2.0, 1.0));
