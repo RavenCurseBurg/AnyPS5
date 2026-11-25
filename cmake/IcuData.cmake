@@ -46,9 +46,10 @@ if(CMAKE_HOST_WIN32)
 else()
     set(icu_data_mode unix-exec)
 endif()
+file(TO_NATIVE_PATH "${ICU_SOURCE_DIR}/python" icu_python_path)
 add_custom_command(OUTPUT ${icu_data_dir}/icudt78l_dat.c
     COMMAND ${CMAKE_COMMAND} -E make_directory ${icu_data_dir}/icudt78l ${icu_data_dir}/tmp
-    COMMAND ${CMAKE_COMMAND} -E time ${CMAKE_COMMAND} -E env PYTHONPATH=${ICU_SOURCE_DIR}/python
+    COMMAND ${CMAKE_COMMAND} -E time ${CMAKE_COMMAND} -E env PYTHONPATH=${icu_python_path}
         ${Python3_EXECUTABLE} -B -m icutools.databuilder
         --mode=${icu_data_mode} --tool_cfg=host --tool_dir=${icu_host_dir}/bin
         --src_dir=${ICU_SOURCE_DIR}/data --out_dir=${icu_data_dir}/icudt78l --tmp_dir=${icu_data_dir}/tmp
