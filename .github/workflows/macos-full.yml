@@ -23,6 +23,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+          fetch-depth: 3
       - run: git submodule update --init --recursive --depth 1 --jobs 8
       - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_OSX_ARCHITECTURES=x86_64
       - name: Compare the proposed and corrected CTest list paths
@@ -51,27 +52,58 @@ jobs:
           assert removed == expected & registered
           (Path(os.environ["RUNNER_TEMP"]) / "previously-excluded.txt").write_text("\n".join(sorted(removed)) + "\n")
           PY
-      - name: Check the selected LibreSSL headers on this host
+      - name: Build the nested JPEG archive and its installed headers
+        run: cmake --build build --parallel 5 --target jpeg_turbo_external
+      - name: Compare headers selected by the production JPEG decoder before and after the change
         run: |
-          cmake --build build --parallel 4 --target libressl_crypto
           python3 - <<'PY'
-          import subprocess
+          import json
           from pathlib import Path
-          target = "core/libs/prx/libSceLibreSsl/CMakeFiles/libressl_crypto.dir/libressl/"
-          for unit, header in (("glue.c.o", "crypto.h"), ("x509_name_print.c.o", "x509.h")):
-              graph = subprocess.check_output(["ninja", "-C", "build", "-t", "deps", target + unit], text=True)
-              names = [s.strip() for s in graph.splitlines() if "/openssl/" in s]
-              found = [s for s in names if s.endswith("/libressl-gen/include/openssl/" + header)]
-              print(unit, len(names), "OpenSSL header dependencies;", header, found, flush=True)
-              assert found and not any(s.startswith("/usr/local/include/openssl/") for s in names), names
+          import re
+          import shlex
+          import subprocess
+
+          helper = Path("core/Decoder/Jpeg/CMakeLists.txt")
+          fixed = helper.read_bytes()
+
+
+          def check(label):
+              subprocess.run(["cmake","-S",".","-B","build","-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"],check=True)
+              entries = json.loads(Path("build/compile_commands.json").read_text())
+              entry, = [item for item in entries if item["file"].endswith("/libSceNKWebKitRequirements/Jpeg.cpp")]
+              args = shlex.split(entry["command"])
+              index = args.index("-o")
+              del args[index:index+2]
+              args[args.index("-c")] = "-fsyntax-only"
+              result = subprocess.run(args+["-H"],cwd=entry["directory"],text=True,capture_output=True)
+              headers = sorted({Path(path).resolve() for path in re.findall(r"^\.+ (.+?/(?:jpeglib|jconfig)\.h)$",result.stderr,re.M)})
+              bundled = [Path("3rdparty/libjpeg-turbo").resolve(),Path("build/libjpeg-turbo/include").resolve()]
+              external = [path for path in headers if not any(root in path.parents for root in bundled)]
+              errors = [line for line in result.stderr.splitlines() if "error:" in line]
+              print(label, result.returncode, sorted(map(str,headers)), errors, flush=True)
+              assert {path.name for path in headers} == {"jpeglib.h","jconfig.h"}, headers
+              if label == "parent":
+                  assert result.returncode and external and any("min_DCT_scaled_size" in line for line in errors)
+              else:
+                  assert result.returncode==0 and not external
+
+
+          try:
+              helper.write_bytes(subprocess.check_output(["git","show","301c34ba3e54966380c158bdd8ac905162be03be:"+helper.as_posix()]))
+              check("parent")
+          finally:
+              helper.write_bytes(fixed)
+              check("fixed")
           PY
-      - name: Build the guest LibreSSL controls
-        run: cmake --build build --parallel 4 --target guest_libressl_x509_name_tests guest_libressl_x509_errors_tests guest_libressl_digest_tests
-      - name: Run the guest X509 and digest tests
-        continue-on-error: true
-        run: ctest --test-dir build --no-tests=error -V -R '^guest_libressl_(x509_name|x509_errors|digest)$' --repeat until-fail:3
+      - name: Build the guest JPEG controls
+        if: ${{ !cancelled() }}
+        run: cmake --build build --parallel 6 --target guest_nk_req_jpeg_tests guest_nk_req_jpeg_error_state_tests guest_nk_req_jpeg_messages_tests guest_nk_req_jpeg_restart_tests
+      - name: Run the guest JPEG tests three times
+        if: ${{ !cancelled() }}
+        run: ctest --test-dir build -R '^guest_nk_req_jpeg($|_)' --repeat until-fail:3 --no-tests=error --output-on-failure
       - id: build
-        run: cmake --build build --parallel 6
+        if: ${{ !cancelled() }}
+        run: cmake --build build --parallel 6 -- -k 8
       - name: Inspect test commands after the proposed default build
         run: |
           python3 - <<'PY'
