@@ -1,0 +1,20 @@
+name: Native Darwin guest accounting
+
+on:
+  push:
+    branches: [verify/resource-accounting-darwin]
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    runs-on: macos-15-intel
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - name: Exercise the native accounting functions
+        run: python3 .github/verify-resource-accounting/qualify.py
