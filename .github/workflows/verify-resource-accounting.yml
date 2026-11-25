@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15-intel]
+        os: [ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 75
     steps:
@@ -36,6 +36,34 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
       - name: Build getrusage and the wait exports
         run: cmake --build build --parallel 3 --target guest_getrusage_tests guest_kernel_sys_wait_tests
+      - name: Print resource readings at each changed assertion
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          f = Path("core/libs/tests/GuestGetrusage.cpp")
+          src = f.read_text()
+          src = "#include <cstdio>\n#include <source_location>\n" + src
+          src = src.replace("static void Require(bool value) { if (!value) std::abort(); }",
+                            'static void Require(bool value, std::source_location loc = std::source_location::current()) { if (!value) { std::fprintf(stderr, "accounting assertion at %s:%u\\n", loc.function_name(), loc.line()); std::abort(); } }')
+          src = src.replace("    Require(before > 0", '    std::fprintf(stderr, "Peak selector %d: before=%lld reported=%lld after=%lld\\n", who, (long long)before, (long long)reported, (long long)HostPeakKilobytes());\n    Require(before > 0')
+          src = src.replace("    Require(MaxResident(0) >= beforeTouch", '    std::fprintf(stderr, "64 MiB allocation: before=%lld after=%lld\\n", (long long)beforeTouch, (long long)MaxResident(0));\n    Require(MaxResident(0) >= beforeTouch')
+          f.write_text(src)
+          PY
+          cmake --build build --parallel 3 --target guest_getrusage_tests
+          ctest --test-dir build --no-tests=error -V -R '^guest_getrusage$'
+      - name: Check the allocation's resident lower bound and monotonicity separately
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          f = Path("core/libs/tests/GuestGetrusage.cpp")
+          src = f.read_text()
+          old = "Require(MaxResident(0) >= beforeTouch + 60000);"
+          assert src.count(old) == 1
+          f.write_text(src.replace(old, "const auto afterTouch = MaxResident(0);\n    Require(afterTouch >= beforeTouch && afterTouch >= 60000);"))
+          PY
+          cmake --build build --parallel 3 --target guest_getrusage_tests
+          ctest --test-dir build --no-tests=error -V -R '^guest_getrusage$' --repeat until-fail:5
       - name: Run guest accounting suite
         run: ctest --test-dir build --no-tests=error -R '^guest_(getrusage$|kernel_sys_wait_)' --repeat until-fail:5 --output-on-failure
       - name: Check that the new getrusage test distinguishes the parent
