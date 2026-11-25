@@ -1,0 +1,90 @@
+--- a/core/libs/prx/libSceAgcDriver/tests/TargetStateMemo.cpp
++++ b/core/libs/prx/libSceAgcDriver/tests/TargetStateMemo.cpp
+@@ -1755,6 +1755,76 @@
+             "a live framebuffer owner remained replayable after the target list was cleared");
+ }
+ 
++void benchmarkRecipe(AgcDriver::VulkanDevice& device, const std::string& mode) {
++    using Clock = std::chrono::steady_clock;
++    constexpr unsigned batches = 24;
++    constexpr unsigned draws = 128;
++    const bool multiple = mode.find("mrt") != std::string::npos;
++    const bool msaa = mode.find("single-sample") == std::string::npos;
++    const bool wantRecipe = mode.find("recipe") != std::string::npos;
++    auto color = colorTarget();
++    if (msaa) {
++        color.address = color.surfaceAddress = address(MultisampleStorage.data());
++    }
++    color.samples = color.coverageSamples = msaa ? 4u : 1u;
++    if (msaa) AgcDriver::GuestMemory::Write(color.address, std::vector<std::byte>(MultisampledColorBytes(color)));
++    else reset(device, color);
++    auto state = drawState(color, {});
++    if (multiple) {
++        auto second = color;
++        second.address = address(OuterStorage.data());
++        second.surfaceAddress = second.address;
++        second.exportIndex = 1;
++        AgcDriver::GuestMemory::Write(second.address, std::vector<std::byte>(MultisampledColorBytes(second), std::byte{0x55}));
++        state.colors.push_back(second);
++        state.blends.push_back(state.blend);
++        state.blends.back().colorWriteMask = 0;
++    }
++    ShaderRecompiler::RecompileResult vertex, fragment;
++    vertex.spirv = std::vector<std::uint32_t>(std::begin(COVER_VERT_SPV), std::end(COVER_VERT_SPV));
++    fragment.spirv = std::vector<std::uint32_t>(std::begin(COVER_FRAG_SPV), std::end(COVER_FRAG_SPV));
++    vertex.variantId = 1;
++    fragment.variantId = 2;
++    const std::array<CompiledShader, 2> shaders{{{ShaderRecompiler::ShaderStage::Vertex, &vertex, 0}, {ShaderRecompiler::ShaderStage::Fragment, &fragment, 0}}};
++    const AgcDriver::Pm4::DrawParameters params{0, 3, 0, 1, 0, false};
++    std::shared_ptr<const AgcDriver::DrawRecipe> recipe;
++    for (unsigned batch = 0; batch < batches; ++batch) {
++        unsigned hits = 0;
++        std::lock_guard lock(AgcDriver::GuestMemory::GpuMutex());
++        const auto start = Clock::now();
++        for (unsigned i = 0; i < draws; ++i) {
++            if (wantRecipe && recipe && device.DrawFromRecipe(state, params, shaders, {}, recipe) == AgcDriver::RecipeOutcome::Recorded) {
++                ++hits;
++                continue;
++            }
++            device.Draw(state, params, shaders, {}, wantRecipe ? &recipe : nullptr);
++        }
++        const auto recorded = Clock::now();
++        device.WaitIdle();
++        const auto finished = Clock::now();
++        std::printf("sample batch=%u draws=%u hits=%u record_ns=%lld total_ns=%lld\n", batch, draws, hits,
++                    (long long)std::chrono::duration_cast<std::chrono::nanoseconds>(recorded-start).count(),
++                    (long long)std::chrono::duration_cast<std::chrono::nanoseconds>(finished-start).count());
++    }
++    if (msaa) {
++        const auto context = AgcDriver::VulkanDeviceTestAccess::ContextOf(device);
++        const auto samples = ReadMultisampleTargetSamples_nid_no_patch(context, color);
++        Require(samples.size() == Width * Height * color.samples * 4u, "benchmark sample count");
++        for (unsigned pixel=0; pixel<Width*Height; ++pixel) for (unsigned sample=0; sample<color.samples; ++sample) {
++            std::uint32_t value;
++            std::memcpy(&value, samples.data()+(pixel*color.samples+sample)*4u, sizeof(value));
++            Require(value==(pixel%Width<LeftWidth ? Drawn : 0u), "benchmark sample mismatch at " + std::to_string(pixel));
++        }
++        if (multiple) {
++            const auto second = ReadMultisampleTargetSamples_nid_no_patch(context, state.colors[1]);
++            Require(second.size() == samples.size() && std::ranges::all_of(second, [](std::byte value) { return value == std::byte{0x55}; }), "second attachment was overwritten");
++        }
++    } else {
++        expect(device, color, [](unsigned x) { return x < LeftWidth ? Drawn : Old; }, "single-sample benchmark control");
++    }
++    std::puts("benchmark readback complete");
++}
++
+ const std::array<std::pair<const char*, void (*)(AgcDriver::VulkanDevice&)>, 19> R3Scenarios{{
+     {"memo-order", memoOrder},
+     {"multisample-recipe", multisampleRecipe},
+@@ -1847,7 +1917,9 @@
+         }
+         AgcDriver::GuestMemory::MarkProofThread();
+         AgcDriver::GuestMemory::BumpCollectEpoch();
+-        if (argc == 3 && std::string(argv[1]) == "--r3") {
++        if (argc == 3 && std::string(argv[1]) == "--bench-msaa") {
++            benchmarkRecipe(*device, argv[2]);
++        } else if (argc == 3 && std::string(argv[1]) == "--r3") {
+             bool found = false;
+             for (const auto& [name, scenario] : R3Scenarios) {
+                 if (std::string(argv[2]) != name) continue;

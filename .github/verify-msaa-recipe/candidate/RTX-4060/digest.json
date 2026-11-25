@@ -1,0 +1,522 @@
+{
+ "summary": {
+  "commit": "fb12b1926065",
+  "dirty": true,
+  "env": {
+   "APS5_DRAW_PIPELINE": "1",
+   "APS5_NO_PIPELINE_JOURNAL": "1",
+   "APS5_TRACE_DIR": "<path>",
+   "APS5_TRACE_FRAMES": "3:10"
+  },
+  "gpu": "NVIDIA GeForce RTX 4060",
+  "driver": "NVIDIA 595.79",
+  "os": "Windows 10.0.26100",
+  "cpu": "13th Gen Intel(R) Core(TM) i7-13700",
+  "cpu_threads": 24,
+  "memory_mib": 32437,
+  "resolution": "64x4",
+  "window": {
+   "spec": "frames 3:10",
+   "first_present": 3,
+   "ms": 9.624
+  },
+  "presents": 10,
+  "frame_ms": {
+   "p50": 0.946,
+   "p90": 1.134,
+   "p99": 1.134,
+   "max": 1.134
+  },
+  "gpu_busy_ms_per_present": 0.0,
+  "worker_busy_pct": {
+   "queue worker 0x0": 78.711
+  },
+  "phase_totals_ms": {
+   "Driver.Completion": 0.022,
+   "Driver.Draw": 6.773,
+   "Driver.Draw.device_setup": 0.779,
+   "Driver.Draw.draw_handed_off": 2.185,
+   "Driver.Draw.prepare": 3.741,
+   "Driver.DrawFinish": 2.816,
+   "Driver.DrawFinish.draw_enqueued": 2.083,
+   "Driver.DrawFinish.post_compile_prepare": 0.163,
+   "Driver.DrawFinish.shader_compile_and_link": 0.427,
+   "Driver.EndSubmission": 0.004,
+   "Driver.Packet": 7.55,
+   "Driver.Packet.device_lock": 0.075,
+   "Driver.Packet.draw": 7.013,
+   "Driver.Packet.execute": 0.034,
+   "Driver.Packet.flush_between_packets": 0.088,
+   "Driver.Packet.pipeline_drain": 0.092,
+   "Driver.Packet.pipeline_prepare": 0.098,
+   "Driver.Packet.prepare_memory": 0.088,
+   "Graphics.DrawWithRecipe": 2.56,
+   "Graphics.DrawWithRecipe.draw_and_resource_release": 2.103,
+   "Graphics.DrawWithRecipe.index_upload": 0.055,
+   "Graphics.DrawWithRecipe.validate": 0.165,
+   "Graphics.DrawWithRecipe.vertex_upload": 0.103,
+   "Recorder.Reap": 0.0,
+   "Recorder.Submit": 0.263,
+   "Recorder.Sync": 0.752,
+   "Vulkan.DrawFromRecipe": 2.884
+  },
+  "top_phases_ms_per_frame": {
+   "Driver.Packet": 0.755,
+   "Driver.Packet.draw": 0.701,
+   "Driver.Draw": 0.677,
+   "Driver.Draw.prepare": 0.374,
+   "Vulkan.DrawFromRecipe": 0.288,
+   "Driver.DrawFinish": 0.282,
+   "Graphics.DrawWithRecipe": 0.256,
+   "Driver.Draw.draw_handed_off": 0.219
+  },
+  "owned_draw_counts": {},
+  "graphics_track": {
+   "Graphics.Barrier.draw": 30,
+   "Graphics.RenderPass": 10,
+   "Graphics.RenderPass.Close.new-batch": 10,
+   "Graphics.RenderPass.Continued": 1270
+  },
+  "trace_dropped": false,
+  "trace": "aps5-trace-fb12b1926065-87180.json.gz"
+ },
+ "frames": 10,
+ "window_ms": 9.624,
+ "slowest_frames": [
+  {
+   "present": 12,
+   "ms": 1.1337999999999993,
+   "at_ms": 8.490200000000002,
+   "slices": [
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.06570000000000073
+    },
+    {
+     "name": "Driver.Packet",
+     "thread": "queue worker 0x0",
+     "ms": 0.0505
+    },
+    {
+     "name": "Driver.Packet.draw",
+     "thread": "queue worker 0x0",
+     "ms": 0.049600000000000366
+    },
+    {
+     "name": "Driver.Draw",
+     "thread": "queue worker 0x0",
+     "ms": 0.04920000000000073
+    }
+   ]
+  },
+  {
+   "present": 8,
+   "ms": 0.9887999999999992,
+   "at_ms": 4.697100000000001,
+   "slices": [
+    {
+     "name": "Driver.WorkerWait",
+     "thread": "queue worker 0x0",
+     "ms": 0.22879999999999928
+    },
+    {
+     "name": "Driver.WorkerWait.idle_and_completion_poll",
+     "thread": "queue worker 0x0",
+     "ms": 0.227
+    },
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.13260000000000036
+    },
+    {
+     "name": "Vulkan.DrawFromRecipe",
+     "thread": "draw committer",
+     "ms": 0.04
+    }
+   ]
+  },
+  {
+   "present": 6,
+   "ms": 0.9885,
+   "at_ms": 2.7876999999999996,
+   "slices": [
+    {
+     "name": "Driver.WorkerWait",
+     "thread": "queue worker 0x0",
+     "ms": 0.2201999999999998
+    },
+    {
+     "name": "Driver.WorkerWait.idle_and_completion_poll",
+     "thread": "queue worker 0x0",
+     "ms": 0.2191999999999998
+    },
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.1315999999999999
+    },
+    {
+     "name": "Vulkan.DrawFromRecipe",
+     "thread": "draw committer",
+     "ms": 0.03690000000000009
+    }
+   ]
+  },
+  {
+   "present": 3,
+   "ms": 0.9845,
+   "at_ms": 0.0,
+   "slices": [
+    {
+     "name": "Driver.WorkerWait",
+     "thread": "queue worker 0x0",
+     "ms": 0.11010000000000002
+    },
+    {
+     "name": "Driver.WorkerWait.idle_and_completion_poll",
+     "thread": "queue worker 0x0",
+     "ms": 0.11010000000000002
+    },
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.060700000000000046
+    },
+    {
+     "name": "batch",
+     "thread": "gpu",
+     "ms": 0.022270999999999957
+    }
+   ]
+  },
+  {
+   "present": 10,
+   "ms": 0.9461999999999998,
+   "at_ms": 6.6131,
+   "slices": [
+    {
+     "name": "Driver.WorkerWait",
+     "thread": "queue worker 0x0",
+     "ms": 0.17760000000000037
+    },
+    {
+     "name": "Driver.WorkerWait.idle_and_completion_poll",
+     "thread": "queue worker 0x0",
+     "ms": 0.177
+    },
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.05910000000000036
+    },
+    {
+     "name": "Vulkan.DrawFromRecipe",
+     "thread": "draw committer",
+     "ms": 0.037399999999999635
+    }
+   ]
+  }
+ ],
+ "persistent_spikes": [
+  {
+   "present": 12,
+   "ms": 1.1337999999999993,
+   "at_ms": 8.490200000000002,
+   "persistence_ms": 0.2413999999999994
+  },
+  {
+   "present": 3,
+   "ms": 0.9845,
+   "at_ms": 0.0,
+   "persistence_ms": 0.09210000000000018
+  },
+  {
+   "present": 6,
+   "ms": 0.9885,
+   "at_ms": 2.7876999999999996,
+   "persistence_ms": 0.06759999999999955
+  },
+  {
+   "present": 8,
+   "ms": 0.9887999999999992,
+   "at_ms": 4.697100000000001,
+   "persistence_ms": 0.061599999999998545
+  },
+  {
+   "present": 10,
+   "ms": 0.9461999999999998,
+   "at_ms": 6.6131,
+   "persistence_ms": 0.015299999999999314
+  }
+ ],
+ "threads": [
+  {
+   "thread": "title",
+   "busy_ms_per_frame": 0.07525000000000018,
+   "wait_ms_per_frame": 0.0,
+   "untraced_ms_per_frame": 0.8871499999999998,
+   "folded_ms_per_frame": 0.0,
+   "busy_pct": 7.81899418121365,
+   "wait_pct": 0.0,
+   "top": [
+    {
+     "name": "Recorder.Sync",
+     "ms_per_frame": 0.07525000000000018
+    }
+   ]
+  },
+  {
+   "thread": "queue worker 0x0",
+   "busy_ms_per_frame": 0.00928000000000002,
+   "wait_ms_per_frame": 0.15529999999999994,
+   "untraced_ms_per_frame": 0.7978200000000001,
+   "folded_ms_per_frame": 2.4994,
+   "busy_pct": 0.9642560266001682,
+   "wait_pct": 16.136741479634242,
+   "top": [
+    {
+     "name": "Driver.Packet",
+     "ms_per_frame": 0.00928000000000002
+    }
+   ]
+  },
+  {
+   "thread": "draw finisher",
+   "busy_ms_per_frame": 0.0,
+   "wait_ms_per_frame": 0.0,
+   "untraced_ms_per_frame": 0.9624,
+   "folded_ms_per_frame": 0.4737,
+   "busy_pct": 0.0,
+   "wait_pct": 0.0,
+   "top": []
+  },
+  {
+   "thread": "draw committer",
+   "busy_ms_per_frame": 0.04190000000000014,
+   "wait_ms_per_frame": 0.0,
+   "untraced_ms_per_frame": 0.9204999999999999,
+   "folded_ms_per_frame": 0.591,
+   "busy_pct": 4.3536990856193,
+   "wait_pct": 0.0,
+   "top": [
+    {
+     "name": "Vulkan.DrawFromRecipe",
+     "ms_per_frame": 0.022980000000000063
+    },
+    {
+     "name": "Recorder.Submit",
+     "ms_per_frame": 0.018920000000000072
+    }
+   ]
+  },
+  {
+   "thread": "gpu",
+   "busy_ms_per_frame": 0.02229659999999999,
+   "wait_ms_per_frame": 0.0,
+   "untraced_ms_per_frame": 0.9401033999999999,
+   "folded_ms_per_frame": 0.0,
+   "busy_pct": 2.316770573566084,
+   "wait_pct": 0.0,
+   "top": [
+    {
+     "name": "batch",
+     "ms_per_frame": 0.02229659999999999
+    }
+   ]
+  }
+ ],
+ "top_slices_ms_per_frame": [
+  {
+   "name": "Driver.WorkerWait",
+   "ms": 0.15529999999999994
+  },
+  {
+   "name": "Driver.WorkerWait.idle_and_completion_poll",
+   "ms": 0.15418999999999997
+  },
+  {
+   "name": "Recorder.Sync",
+   "ms": 0.07525000000000018
+  },
+  {
+   "name": "Vulkan.DrawFromRecipe",
+   "ms": 0.022980000000000063
+  },
+  {
+   "name": "batch",
+   "ms": 0.02229659999999999
+  },
+  {
+   "name": "Graphics.DrawWithRecipe",
+   "ms": 0.02024999999999991
+  },
+  {
+   "name": "Recorder.Submit",
+   "ms": 0.018920000000000072
+  },
+  {
+   "name": "Graphics.DrawWithRecipe.draw_and_resource_release",
+   "ms": 0.017170000000000026
+  },
+  {
+   "name": "Driver.Packet",
+   "ms": 0.00928000000000002
+  },
+  {
+   "name": "Driver.Packet.draw",
+   "ms": 0.009130000000000018
+  }
+ ],
+ "longest_waits": [
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.24610000000000037,
+   "at_ms": 5.4859,
+   "present": 8
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.2198000000000002,
+   "at_ms": 3.584,
+   "present": 6
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.18160000000000037,
+   "at_ms": 6.481,
+   "present": 9
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.16879999999999928,
+   "at_ms": 8.3624,
+   "present": 11
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.1644000000000001,
+   "at_ms": 1.7592,
+   "present": 4
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.15939999999999963,
+   "at_ms": 7.4312,
+   "present": 10
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.14019999999999994,
+   "at_ms": 0.8744,
+   "present": 3
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.13669999999999982,
+   "at_ms": 2.679,
+   "present": 5
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.136,
+   "at_ms": 4.589899999999999,
+   "present": 7
+  }
+ ],
+ "largest_gpu_batches": [
+  {
+   "batch": 8,
+   "ms": 0.022527000000000002,
+   "at_ms": 7.478623,
+   "present": 10,
+   "gpu_ranges": [],
+   "recorded_by": [
+    {
+     "name": "Vulkan.DrawFromRecipe",
+     "thread": "draw committer",
+     "ms": 0.037399999999999996
+    },
+    {
+     "name": "Recorder.Submit",
+     "thread": "draw committer",
+     "ms": 0.0373
+    },
+    {
+     "name": "Graphics.DrawWithRecipe",
+     "thread": "draw committer",
+     "ms": 0.0364
+    },
+    {
+     "name": "Graphics.DrawWithRecipe.draw_and_resource_release",
+     "thread": "draw committer",
+     "ms": 0.0345
+    }
+   ]
+  },
+  {
+   "batch": 9,
+   "ms": 0.022527000000000002,
+   "at_ms": 8.393785,
+   "present": 11,
+   "gpu_ranges": [],
+   "recorded_by": [
+    {
+     "name": "Vulkan.DrawFromRecipe",
+     "thread": "draw committer",
+     "ms": 0.0202
+    }
+   ]
+  },
+  {
+   "batch": 10,
+   "ms": 0.022527000000000002,
+   "at_ms": 9.530377,
+   "present": 12,
+   "gpu_ranges": [],
+   "recorded_by": [
+    {
+     "name": "Recorder.Submit",
+     "thread": "draw committer",
+     "ms": 0.0289
+    },
+    {
+     "name": "Vulkan.DrawFromRecipe",
+     "thread": "draw committer",
+     "ms": 0.0222
+    },
+    {
+     "name": "Graphics.DrawWithRecipe",
+     "thread": "draw committer",
+     "ms": 0.020399999999999998
+    }
+   ]
+  },
+  {
+   "batch": 1,
+   "ms": 0.022271,
+   "at_ms": 0.903798,
+   "present": 3,
+   "gpu_ranges": [],
+   "recorded_by": []
+  },
+  {
+   "batch": 2,
+   "ms": 0.022271,
+   "at_ms": 1.789776,
+   "present": 4,
+   "gpu_ranges": [],
+   "recorded_by": []
+  }
+ ]
+}

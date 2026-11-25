@@ -1,0 +1,53 @@
+{
+  "files": {
+    "parentA": {
+      "agc_driver_target_memo_tests.exe": "90a7bf1a7dd0b9cfdb29315b2ca6bed299c796271e34773290a13d6026d5d963",
+      "libc.prx": "b8920b64ed30c1f37e97ba5be4bfdcd250df52fc71a7d91ad7b9c8e958e62d1b",
+      "libkernel.prx": "ccea80b34897f4a1fd896640720375e9068d4bb9e6657022e66a3ef80e32204f",
+      "libSceAgcDriver.prx": "e83e3eeaf11915d22eede4c913cdec7b62eb69e94ef555325667ee76ece68556"
+    },
+    "parentB": {
+      "agc_driver_target_memo_tests.exe": "90a7bf1a7dd0b9cfdb29315b2ca6bed299c796271e34773290a13d6026d5d963",
+      "libc.prx": "b8920b64ed30c1f37e97ba5be4bfdcd250df52fc71a7d91ad7b9c8e958e62d1b",
+      "libkernel.prx": "ccea80b34897f4a1fd896640720375e9068d4bb9e6657022e66a3ef80e32204f",
+      "libSceAgcDriver.prx": "e83e3eeaf11915d22eede4c913cdec7b62eb69e94ef555325667ee76ece68556"
+    },
+    "candidate": {
+      "agc_driver_target_memo_tests.exe": "90a7bf1a7dd0b9cfdb29315b2ca6bed299c796271e34773290a13d6026d5d963",
+      "libc.prx": "b8920b64ed30c1f37e97ba5be4bfdcd250df52fc71a7d91ad7b9c8e958e62d1b",
+      "libkernel.prx": "ccea80b34897f4a1fd896640720375e9068d4bb9e6657022e66a3ef80e32204f",
+      "libSceAgcDriver.prx": "7b27a339d09151eb598c1db2a981f32fe5c15db65be395c2b8985319557f9106"
+    }
+  },
+  "efficiency_classes": {
+    "1": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "0": [
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ]
+  },
+  "used_mask": "0xffff"
+}

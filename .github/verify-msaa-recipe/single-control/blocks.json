@@ -1,0 +1,930 @@
+[
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 1,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.1125,
+        "total_us": 2.26171875
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.17578125,
+        "total_us": 2.32109375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.2734375,
+        "total_us": 2.4125
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.2296875,
+        "total_us": 2.43671875
+      }
+    ],
+    "record_us_ratio": 0.9558622416396396,
+    "total_us_ratio": 0.9920692754662516
+  },
+  {
+    "device": "UHD",
+    "comparison": "parentB",
+    "trial": 1,
+    "processes": [
+      {
+        "arm": "parentB",
+        "record_us": 1.2,
+        "total_us": 2.29375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.14453125,
+        "total_us": 2.215625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.184375,
+        "total_us": 2.29453125
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.09453125,
+        "total_us": 2.1453125
+      }
+    ],
+    "record_us_ratio": 0.9843425586488612,
+    "total_us_ratio": 0.9838371226488409
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 0,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.14921875,
+        "total_us": 1.71875
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.1515625,
+        "total_us": 1.77578125
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.16640625,
+        "total_us": 1.7796875
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.1921875,
+        "total_us": 1.82265625
+      }
+    ],
+    "record_us_ratio": 0.9901364361276286,
+    "total_us_ratio": 1.004402691739987
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 0,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.45390625,
+        "total_us": 2.76875
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.2515625,
+        "total_us": 2.39609375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.390625,
+        "total_us": 2.578125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.32734375,
+        "total_us": 2.49375
+      }
+    ],
+    "record_us_ratio": 0.9496670745034448,
+    "total_us_ratio": 0.9458789486622995
+  },
+  {
+    "device": "UHD",
+    "comparison": "parentB",
+    "trial": 0,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.28125,
+        "total_us": 2.403125
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.26015625,
+        "total_us": 2.42421875
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.23515625,
+        "total_us": 2.37734375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.24375,
+        "total_us": 2.4171875
+      }
+    ],
+    "record_us_ratio": 0.9883019742854492,
+    "total_us_ratio": 0.9960669809523097
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 5,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.18671875,
+        "total_us": 2.33203125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.24140625,
+        "total_us": 2.48515625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.14375,
+        "total_us": 2.27578125
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.25546875,
+        "total_us": 2.39140625
+      }
+    ],
+    "record_us_ratio": 1.0243640731748183,
+    "total_us_ratio": 0.9930057325744984
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "parentB",
+    "trial": 1,
+    "processes": [
+      {
+        "arm": "parentB",
+        "record_us": 1.40078125,
+        "total_us": 2.9609375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.25078125,
+        "total_us": 1.88984375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.21015625,
+        "total_us": 1.85703125
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.11640625,
+        "total_us": 1.70546875
+      }
+    ],
+    "record_us_ratio": 1.0164473415555204,
+    "total_us_ratio": 1.1995378268654995
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "parentB",
+    "trial": 3,
+    "processes": [
+      {
+        "arm": "parentB",
+        "record_us": 1.10078125,
+        "total_us": 1.6546875
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.0984375,
+        "total_us": 1.65234375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.15078125,
+        "total_us": 1.72890625
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.19609375,
+        "total_us": 1.82578125
+      }
+    ],
+    "record_us_ratio": 1.020584711234448,
+    "total_us_ratio": 1.0283629969566803
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 9,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.3703125,
+        "total_us": 2.6046875
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.19765625,
+        "total_us": 2.33125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.1546875,
+        "total_us": 2.3171875
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.16875,
+        "total_us": 2.23671875
+      }
+    ],
+    "record_us_ratio": 1.076148728330701,
+    "total_us_ratio": 1.0385047541181105
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 8,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.16171875,
+        "total_us": 3.275
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.5,
+        "total_us": 2.30859375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.43046875,
+        "total_us": 2.2953125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.328125,
+        "total_us": 4.075
+      }
+    ],
+    "record_us_ratio": 1.1792743204113945,
+    "total_us_ratio": 0.6301228229613753
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "parentB",
+    "trial": 0,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.075,
+        "total_us": 1.6234375
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.1140625,
+        "total_us": 2.7734375
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.153125,
+        "total_us": 4.64609375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.1453125,
+        "total_us": 1.71875
+      }
+    ],
+    "record_us_ratio": 1.0214726418606304,
+    "total_us_ratio": 2.148963473595955
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 5,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.22734375,
+        "total_us": 1.83671875
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.17421875,
+        "total_us": 1.75390625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.1046875,
+        "total_us": 1.68828125
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.11953125,
+        "total_us": 1.67265625
+      }
+    ],
+    "record_us_ratio": 1.0292170987682747,
+    "total_us_ratio": 1.0185892586699645
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 4,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.171875,
+        "total_us": 2.4359375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.13671875,
+        "total_us": 2.2375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.08984375,
+        "total_us": 2.134375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.346875,
+        "total_us": 2.59296875
+      }
+    ],
+    "record_us_ratio": 0.8859400607170299,
+    "total_us_ratio": 0.8695312059624848
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "parentB",
+    "trial": 2,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.32890625,
+        "total_us": 3.50546875
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.15625,
+        "total_us": 1.78515625
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.27890625,
+        "total_us": 3.48203125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.1953125,
+        "total_us": 3.67109375
+      }
+    ],
+    "record_us_ratio": 0.9648444992256434,
+    "total_us_ratio": 0.6949981714680917
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 10,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.12109375,
+        "total_us": 2.18984375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.10859375,
+        "total_us": 2.24609375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.1421875,
+        "total_us": 2.2484375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.228125,
+        "total_us": 2.4390625
+      }
+    ],
+    "record_us_ratio": 0.9589868735300537,
+    "total_us_ratio": 0.9723806793424508
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 4,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.21328125,
+        "total_us": 1.80703125
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.17109375,
+        "total_us": 1.88515625
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.809375,
+        "total_us": 2.94296875
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.38046875,
+        "total_us": 2.053125
+      }
+    ],
+    "record_us_ratio": 1.1247761304105037,
+    "total_us_ratio": 1.2228578455626986
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 3,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.25390625,
+        "total_us": 2.32734375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.15,
+        "total_us": 2.215625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.26640625,
+        "total_us": 2.41015625
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.2265625,
+        "total_us": 2.31953125
+      }
+    ],
+    "record_us_ratio": 1.0276422045912361,
+    "total_us_ratio": 1.0054480888955726
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 2,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.22890625,
+        "total_us": 4.5484375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.17265625,
+        "total_us": 1.77578125
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.29609375,
+        "total_us": 2.00078125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.31328125,
+        "total_us": 2.053125
+      }
+    ],
+    "record_us_ratio": 0.9704324740388445,
+    "total_us_ratio": 0.6168161355781684
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 6,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.2328125,
+        "total_us": 2.346875
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.3640625,
+        "total_us": 2.5875
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.19453125,
+        "total_us": 2.2765625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.40390625,
+        "total_us": 2.60703125
+      }
+    ],
+    "record_us_ratio": 0.9702827812288726,
+    "total_us_ratio": 0.9812097844871256
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 2,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.42421875,
+        "total_us": 2.640625
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.3078125,
+        "total_us": 2.41640625
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.3265625,
+        "total_us": 2.53671875
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.21796875,
+        "total_us": 2.3421875
+      }
+    ],
+    "record_us_ratio": 1.0000694895064206,
+    "total_us_ratio": 0.9955359325261567
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 1,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.24296875,
+        "total_us": 1.88203125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.20859375,
+        "total_us": 1.80234375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.1921875,
+        "total_us": 4.05
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.26015625,
+        "total_us": 1.95390625
+      }
+    ],
+    "record_us_ratio": 1.0426291188388987,
+    "total_us_ratio": 0.7097721461583177
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 7,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.25390625,
+        "total_us": 2.48359375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.29921875,
+        "total_us": 2.53203125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.19921875,
+        "total_us": 2.29375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.2390625,
+        "total_us": 2.3609375
+      }
+    ],
+    "record_us_ratio": 0.998593639125966,
+    "total_us_ratio": 1.0047891871059196
+  },
+  {
+    "device": "UHD",
+    "comparison": "parentB",
+    "trial": 2,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.19921875,
+        "total_us": 2.28046875
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.19921875,
+        "total_us": 2.45234375
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.25546875,
+        "total_us": 2.434375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.4390625,
+        "total_us": 2.78359375
+      }
+    ],
+    "record_us_ratio": 0.9340349464640332,
+    "total_us_ratio": 0.9697715154500167
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 7,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.24453125,
+        "total_us": 2.00390625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.28359375,
+        "total_us": 3.81953125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.3890625,
+        "total_us": 2.22265625
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.31953125,
+        "total_us": 1.9734375
+      }
+    ],
+    "record_us_ratio": 0.95970565232519,
+    "total_us_ratio": 0.6825102905471793
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 10,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.32421875,
+        "total_us": 2.0734375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.42109375,
+        "total_us": 2.1296875
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.3640625,
+        "total_us": 2.015625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.3515625,
+        "total_us": 4.2203125
+      }
+    ],
+    "record_us_ratio": 1.0407120098971279,
+    "total_us_ratio": 0.7003982133058003
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 3,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.4078125,
+        "total_us": 4.6375
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.228125,
+        "total_us": 1.83515625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.2,
+        "total_us": 1.81640625
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.23515625,
+        "total_us": 1.97265625
+      }
+    ],
+    "record_us_ratio": 1.0862291406623985,
+    "total_us_ratio": 1.6566266760405781
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 11,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.61328125,
+        "total_us": 2.9765625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.4796875,
+        "total_us": 2.66953125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.4453125,
+        "total_us": 2.6890625
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.278125,
+        "total_us": 2.41171875
+      }
+    ],
+    "record_us_ratio": 0.9819193673600136,
+    "total_us_ratio": 1.0000066318900558
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 9,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.4109375,
+        "total_us": 2.21875
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.43828125,
+        "total_us": 4.65078125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.51875,
+        "total_us": 4.60625
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.2796875,
+        "total_us": 2.02265625
+      }
+    ],
+    "record_us_ratio": 0.9091609989495724,
+    "total_us_ratio": 0.45769747499719704
+  },
+  {
+    "device": "UHD",
+    "comparison": "candidate",
+    "trial": 8,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.2609375,
+        "total_us": 2.41171875
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.31796875,
+        "total_us": 2.45703125
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.40390625,
+        "total_us": 2.56953125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.3640625,
+        "total_us": 2.50546875
+      }
+    ],
+    "record_us_ratio": 1.0371885051574445,
+    "total_us_ratio": 1.0221731453311698
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 6,
+    "processes": [
+      {
+        "arm": "parentA",
+        "record_us": 1.2484375,
+        "total_us": 1.86875
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.4125,
+        "total_us": 2.18359375
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.40390625,
+        "total_us": 2.1078125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.39609375,
+        "total_us": 2.48125
+      }
+    ],
+    "record_us_ratio": 1.0666515968930614,
+    "total_us_ratio": 0.996302096606962
+  },
+  {
+    "device": "UHD",
+    "comparison": "parentB",
+    "trial": 3,
+    "processes": [
+      {
+        "arm": "parentB",
+        "record_us": 1.25859375,
+        "total_us": 2.47265625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.7140625,
+        "total_us": 3.103125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.4953125,
+        "total_us": 2.8859375
+      },
+      {
+        "arm": "parentB",
+        "record_us": 1.38984375,
+        "total_us": 2.51796875
+      }
+    ],
+    "record_us_ratio": 0.8261263335228708,
+    "total_us_ratio": 0.8338039428578929
+  },
+  {
+    "device": "RTX 4060",
+    "comparison": "candidate",
+    "trial": 11,
+    "processes": [
+      {
+        "arm": "candidate",
+        "record_us": 1.40078125,
+        "total_us": 2.13203125
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.2828125,
+        "total_us": 1.9890625
+      },
+      {
+        "arm": "parentA",
+        "record_us": 1.21953125,
+        "total_us": 1.86328125
+      },
+      {
+        "arm": "candidate",
+        "record_us": 1.2703125,
+        "total_us": 2.06875
+      }
+    ],
+    "record_us_ratio": 1.0665037515944795,
+    "total_us_ratio": 1.0909060916474962
+  }
+]

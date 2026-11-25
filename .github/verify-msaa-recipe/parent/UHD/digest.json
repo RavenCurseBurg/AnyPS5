@@ -1,0 +1,510 @@
+{
+ "summary": {
+  "commit": "6b59b8f5e76c",
+  "dirty": true,
+  "env": {
+   "APS5_DRAW_PIPELINE": "1",
+   "APS5_NO_PIPELINE_JOURNAL": "1",
+   "APS5_TRACE_DIR": "<path>",
+   "APS5_TRACE_FRAMES": "3:10"
+  },
+  "gpu": "Intel(R) UHD Graphics 770",
+  "driver": "Intel Corporation 101.5973",
+  "os": "Windows 10.0.26100",
+  "cpu": "13th Gen Intel(R) Core(TM) i7-13700",
+  "cpu_threads": 24,
+  "memory_mib": 32437,
+  "resolution": "64x4",
+  "window": {
+   "spec": "frames 3:10",
+   "first_present": 3,
+   "ms": 10.585
+  },
+  "presents": 10,
+  "frame_ms": {
+   "p50": 1.051,
+   "p90": 1.187,
+   "p99": 1.187,
+   "max": 1.187
+  },
+  "gpu_busy_ms_per_present": 0.0,
+  "worker_busy_pct": {
+   "queue worker 0x0": 82.642
+  },
+  "phase_totals_ms": {
+   "Driver.Completion": 0.024,
+   "Driver.Draw": 7.878,
+   "Driver.Draw.device_setup": 0.812,
+   "Driver.Draw.draw_handed_off": 2.813,
+   "Driver.Draw.prepare": 4.176,
+   "Driver.DrawFinish": 3.266,
+   "Driver.DrawFinish.draw_enqueued": 2.537,
+   "Driver.DrawFinish.post_compile_prepare": 0.16,
+   "Driver.DrawFinish.shader_compile_and_link": 0.422,
+   "Driver.EndSubmission": 0.004,
+   "Driver.Packet": 8.72,
+   "Driver.Packet.device_lock": 0.079,
+   "Driver.Packet.draw": 8.113,
+   "Driver.Packet.execute": 0.035,
+   "Driver.Packet.flush_between_packets": 0.102,
+   "Driver.Packet.pipeline_drain": 0.123,
+   "Driver.Packet.pipeline_prepare": 0.102,
+   "Driver.Packet.prepare_memory": 0.097,
+   "Graphics.Draw": 3.539,
+   "Graphics.Draw.draw_and_resource_release": 2.853,
+   "Graphics.Draw.index_upload": 0.061,
+   "Graphics.Draw.validate": 0.356,
+   "Graphics.Draw.vertex_upload": 0.108,
+   "Recorder.Reap": 0.001,
+   "Recorder.Submit": 0.177,
+   "Recorder.Sync": 0.686
+  },
+  "top_phases_ms_per_frame": {
+   "Driver.Packet": 0.872,
+   "Driver.Packet.draw": 0.811,
+   "Driver.Draw": 0.788,
+   "Driver.Draw.prepare": 0.418,
+   "Graphics.Draw": 0.354,
+   "Driver.DrawFinish": 0.327,
+   "Graphics.Draw.draw_and_resource_release": 0.285,
+   "Driver.Draw.draw_handed_off": 0.281
+  },
+  "owned_draw_counts": {},
+  "graphics_track": {
+   "Graphics.Barrier.draw": 30,
+   "Graphics.RenderPass": 10,
+   "Graphics.RenderPass.Close.new-batch": 10,
+   "Graphics.RenderPass.Continued": 1270
+  },
+  "trace_dropped": false,
+  "trace": "aps5-trace-6b59b8f5e76c-85464.json.gz"
+ },
+ "frames": 10,
+ "window_ms": 10.585,
+ "slowest_frames": [
+  {
+   "present": 3,
+   "ms": 1.1869,
+   "at_ms": 0.0,
+   "slices": [
+    {
+     "name": "Driver.WorkerWait",
+     "thread": "queue worker 0x0",
+     "ms": 0.13120000000000004
+    },
+    {
+     "name": "Driver.WorkerWait.idle_and_completion_poll",
+     "thread": "queue worker 0x0",
+     "ms": 0.13110000000000013
+    },
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.09529999999999995
+    },
+    {
+     "name": "Graphics.Draw",
+     "thread": "draw committer",
+     "ms": 0.0305
+    }
+   ]
+  },
+  {
+   "present": 6,
+   "ms": 1.078,
+   "at_ms": 3.28,
+   "slices": [
+    {
+     "name": "Driver.WorkerWait",
+     "thread": "queue worker 0x0",
+     "ms": 0.14260000000000037
+    },
+    {
+     "name": "Driver.WorkerWait.idle_and_completion_poll",
+     "thread": "queue worker 0x0",
+     "ms": 0.14130000000000018
+    },
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.05719999999999982
+    },
+    {
+     "name": "Driver.Packet",
+     "thread": "queue worker 0x0",
+     "ms": 0.04859999999999991
+    }
+   ]
+  },
+  {
+   "present": 10,
+   "ms": 1.0772000000000008,
+   "at_ms": 7.400399999999999,
+   "slices": [
+    {
+     "name": "Driver.WorkerWait",
+     "thread": "queue worker 0x0",
+     "ms": 0.1460000000000009
+    },
+    {
+     "name": "Driver.WorkerWait.idle_and_completion_poll",
+     "thread": "queue worker 0x0",
+     "ms": 0.14520000000000072
+    },
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.07320000000000072
+    },
+    {
+     "name": "Driver.Packet",
+     "thread": "queue worker 0x0",
+     "ms": 0.036899999999999634
+    }
+   ]
+  },
+  {
+   "present": 12,
+   "ms": 1.0567000000000006,
+   "at_ms": 9.5283,
+   "slices": [
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.05889999999999963
+    },
+    {
+     "name": "Graphics.Draw",
+     "thread": "draw committer",
+     "ms": 0.036899999999999634
+    },
+    {
+     "name": "Driver.WorkerWait",
+     "thread": "queue worker 0x0",
+     "ms": 0.03660000000000036
+    },
+    {
+     "name": "Driver.WorkerWait.idle_and_completion_poll",
+     "thread": "queue worker 0x0",
+     "ms": 0.03539999999999963
+    }
+   ]
+  },
+  {
+   "present": 11,
+   "ms": 1.0506999999999989,
+   "at_ms": 8.4776,
+   "slices": [
+    {
+     "name": "Driver.WorkerWait",
+     "thread": "queue worker 0x0",
+     "ms": 0.1731999999999989
+    },
+    {
+     "name": "Driver.WorkerWait.idle_and_completion_poll",
+     "thread": "queue worker 0x0",
+     "ms": 0.1725
+    },
+    {
+     "name": "Recorder.Sync",
+     "thread": "title",
+     "ms": 0.059
+    },
+    {
+     "name": "Graphics.Draw",
+     "thread": "draw committer",
+     "ms": 0.0415
+    }
+   ]
+  }
+ ],
+ "persistent_spikes": [
+  {
+   "present": 3,
+   "ms": 1.1869,
+   "at_ms": 0.0,
+   "persistence_ms": 0.18009999999999993
+  },
+  {
+   "present": 10,
+   "ms": 1.0772000000000008,
+   "at_ms": 7.400399999999999,
+   "persistence_ms": 0.07040000000000068
+  },
+  {
+   "present": 6,
+   "ms": 1.078,
+   "at_ms": 3.28,
+   "persistence_ms": 0.03290000000000015
+  },
+  {
+   "present": 8,
+   "ms": 1.0255,
+   "at_ms": 5.3648,
+   "persistence_ms": 0.015400000000000524
+  },
+  {
+   "present": 12,
+   "ms": 1.0567000000000006,
+   "at_ms": 9.5283,
+   "persistence_ms": 0.006000000000001782
+  }
+ ],
+ "threads": [
+  {
+   "thread": "title",
+   "busy_ms_per_frame": 0.06863,
+   "wait_ms_per_frame": 0.0,
+   "untraced_ms_per_frame": 0.9898700000000001,
+   "folded_ms_per_frame": 0.0,
+   "busy_pct": 6.483703353802551,
+   "wait_pct": 0.0,
+   "top": [
+    {
+     "name": "Recorder.Sync",
+     "ms_per_frame": 0.06863
+    }
+   ]
+  },
+  {
+   "thread": "queue worker 0x0",
+   "busy_ms_per_frame": 0.01657999999999988,
+   "wait_ms_per_frame": 0.13052,
+   "untraced_ms_per_frame": 0.9114000000000002,
+   "folded_ms_per_frame": 2.9339,
+   "busy_pct": 1.5663675011809053,
+   "wait_pct": 12.330656589513461,
+   "top": [
+    {
+     "name": "Driver.Packet",
+     "ms_per_frame": 0.01657999999999988
+    }
+   ]
+  },
+  {
+   "thread": "draw finisher",
+   "busy_ms_per_frame": 0.004189999999999964,
+   "wait_ms_per_frame": 0.0,
+   "untraced_ms_per_frame": 1.05431,
+   "folded_ms_per_frame": 0.5690999999999999,
+   "busy_pct": 0.3958431743032559,
+   "wait_pct": 0.0,
+   "top": [
+    {
+     "name": "Driver.DrawFinish",
+     "ms_per_frame": 0.004189999999999964
+    }
+   ]
+  },
+  {
+   "thread": "draw committer",
+   "busy_ms_per_frame": 0.022920000000000117,
+   "wait_ms_per_frame": 0.0,
+   "untraced_ms_per_frame": 1.03558,
+   "folded_ms_per_frame": 0.6071,
+   "busy_pct": 2.1653282947567423,
+   "wait_pct": 0.0,
+   "top": [
+    {
+     "name": "Graphics.Draw",
+     "ms_per_frame": 0.016419999999999983
+    },
+    {
+     "name": "Recorder.Submit",
+     "ms_per_frame": 0.006500000000000136
+    }
+   ]
+  },
+  {
+   "thread": "gpu",
+   "busy_ms_per_frame": 0.005249800000000141,
+   "wait_ms_per_frame": 0.0,
+   "untraced_ms_per_frame": 1.0532502,
+   "folded_ms_per_frame": 0.0,
+   "busy_pct": 0.4959659896079491,
+   "wait_pct": 0.0,
+   "top": [
+    {
+     "name": "batch",
+     "ms_per_frame": 0.005249800000000141
+    }
+   ]
+  }
+ ],
+ "top_slices_ms_per_frame": [
+  {
+   "name": "Driver.WorkerWait",
+   "ms": 0.13052
+  },
+  {
+   "name": "Driver.WorkerWait.idle_and_completion_poll",
+   "ms": 0.12954999999999997
+  },
+  {
+   "name": "Recorder.Sync",
+   "ms": 0.06863
+  },
+  {
+   "name": "Driver.Packet",
+   "ms": 0.01657999999999988
+  },
+  {
+   "name": "Graphics.Draw",
+   "ms": 0.016419999999999983
+  },
+  {
+   "name": "Graphics.Draw.draw_and_resource_release",
+   "ms": 0.015120000000000012
+  },
+  {
+   "name": "Driver.Packet.draw",
+   "ms": 0.0143599999999999
+  },
+  {
+   "name": "Driver.Draw",
+   "ms": 0.010909999999999944
+  },
+  {
+   "name": "Recorder.Submit",
+   "ms": 0.006500000000000136
+  },
+  {
+   "name": "batch",
+   "ms": 0.005249800000000141
+  }
+ ],
+ "longest_waits": [
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.17589999999999964,
+   "at_ms": 8.3615,
+   "present": 10
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.16890000000000008,
+   "at_ms": 1.0557,
+   "present": 3
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.15,
+   "at_ms": 9.4149,
+   "present": 11
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.14980000000000018,
+   "at_ms": 3.172,
+   "present": 5
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.1489000000000001,
+   "at_ms": 2.125,
+   "present": 4
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.1335,
+   "at_ms": 6.291399999999999,
+   "present": 8
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.13289999999999963,
+   "at_ms": 4.2572,
+   "present": 6
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.1253000000000002,
+   "at_ms": 5.2675,
+   "present": 7
+  },
+  {
+   "name": "Driver.WorkerWait",
+   "thread": "queue worker 0x0",
+   "ms": 0.12,
+   "at_ms": 7.3103,
+   "present": 9
+  }
+ ],
+ "largest_gpu_batches": [
+  {
+   "batch": 3,
+   "ms": 0.005261,
+   "at_ms": 3.24684,
+   "present": 5,
+   "gpu_ranges": [],
+   "recorded_by": [
+    {
+     "name": "Graphics.Draw",
+     "thread": "draw committer",
+     "ms": 0.0315
+    },
+    {
+     "name": "Graphics.Draw.draw_and_resource_release",
+     "thread": "draw committer",
+     "ms": 0.029
+    },
+    {
+     "name": "Recorder.Submit",
+     "thread": "draw committer",
+     "ms": 0.0221
+    }
+   ]
+  },
+  {
+   "batch": 6,
+   "ms": 0.005261,
+   "at_ms": 6.3575550000000005,
+   "present": 8,
+   "gpu_ranges": [],
+   "recorded_by": []
+  },
+  {
+   "batch": 2,
+   "ms": 0.00526,
+   "at_ms": 2.199224,
+   "present": 4,
+   "gpu_ranges": [],
+   "recorded_by": []
+  },
+  {
+   "batch": 4,
+   "ms": 0.00526,
+   "at_ms": 4.326383,
+   "present": 6,
+   "gpu_ranges": [],
+   "recorded_by": [
+    {
+     "name": "Graphics.Draw",
+     "thread": "draw committer",
+     "ms": 0.0238
+    },
+    {
+     "name": "Graphics.Draw.draw_and_resource_release",
+     "thread": "draw committer",
+     "ms": 0.0219
+    }
+   ]
+  },
+  {
+   "batch": 7,
+   "ms": 0.00526,
+   "at_ms": 7.372413,
+   "present": 9,
+   "gpu_ranges": [],
+   "recorded_by": []
+  }
+ ]
+}
