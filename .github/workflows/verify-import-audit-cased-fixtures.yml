@@ -1,0 +1,48 @@
+name: Verify import audit directory spelling
+on:
+  push:
+    branches: [verify/import-audit-cased-fixtures]
+permissions:
+  contents: read
+jobs:
+  audit:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Identify the case sensitivity of the temporary test volume
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          with TemporaryDirectory() as d:
+              path=Path(d)
+              (path/"tests").mkdir()
+              print("case-sensitive:", not (path/"Tests").exists())
+          PY
+      - name: Run the complete import audit suite
+        run: python3 -m unittest tools.tests.test_import_audit
+      - name: Check the uppercase directory assertion catches case folding
+        run: |
+          python3 - <<'PY'
+          from inspect import getsource
+          from unittest import TestResult
+          from unittest.mock import patch
+          from tools.tests import test_import_audit as test
+          module=test.import_audit
+          source=getsource(module._library_cpp_sources)
+          assert source.count('entry.name != "tests"') == 1
+          namespace={}
+          exec(source.replace('entry.name != "tests"', 'entry.name.lower() != "tests"'), module.__dict__, namespace)
+          case=test.FastScanTests("test_library_scan_preserves_test_dir_rules_and_unbalanced_helper_error")
+          result=TestResult()
+          with patch.object(module, "_library_cpp_sources", namespace["_library_cpp_sources"]):
+              case.run(result)
+          assert len(result.failures)==1 and not result.errors and "sceInUpperTests" in result.failures[0][1],result
+          print("case-folding mutation rejected by the uppercase directory assertion")
+          PY
