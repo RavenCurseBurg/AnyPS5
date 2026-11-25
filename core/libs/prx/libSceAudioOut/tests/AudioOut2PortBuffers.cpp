@@ -1,4 +1,5 @@
 #include "prx/libSceAudioOut/include/AudioOut2.hpp"
+#include "prx/libSceAudioOut/include/HostPause.hpp"
 #include "prx/libSceAudioOut/src/AudioOut2PadMix.hpp"
 #include "SceTypes.hpp"
 
@@ -129,6 +130,31 @@ void TestBuffersSetBeforeOnePushPlayInOrder() {
         Require(sceAudioOut2ContextPush(context, 1) == 0);
     });
     RequirePlayed(played, {&first, &second, &third});
+}
+
+void TestHostPauseSilencesTheDeviceCallback() {
+    const auto before = Grain(0.01f);
+    const auto during = Grain(0.02f);
+    const auto after = Grain(0.03f);
+    const std::vector<float> silence(grain * channels);
+    auto played = Play([&](AudioOut2ContextHandle context, AudioOut2PortHandle port) {
+        const auto pushAndDrain = [&](const std::vector<float>& data) {
+            SetData(port, data.data());
+            Require(sceAudioOut2ContextPush(context, 1) == 0);
+            for (std::uint32_t push = 0; push < silentGrains; ++push) {
+                SetData(port, silence.data());
+                Require(sceAudioOut2ContextPush(context, 1) == 0);
+            }
+        };
+        pushAndDrain(before);
+        AudioOutSetHostPause_nid_no_patch(true);
+        pushAndDrain(during);
+        AudioOutSetHostPause_nid_no_patch(false);
+        pushAndDrain(after);
+    });
+    Require(played.size() >= 3 * grain * channels);
+    std::erase(played, 0.0f);
+    RequirePlayed(played, {&before, &after});
 }
 
 void TestBurstThenGapKeepsEveryBuffer() {
@@ -380,6 +406,7 @@ void TestSetAttributesRejectsUnreadablePointers() {
 int main() {
     UnsetEnvironment(AUDIO_PAD_SPEAKER_FALLBACK_ENV);
     SetEnvironment("SDL_AUDIODRIVER", "disk");
+    TestHostPauseSilencesTheDeviceCallback();
     TestAdvanceRetainsRewrittenBuffer();
     TestAdvanceRetainsVolume();
     TestAdvanceKeepsTheGrainSetBeforeTheBufferIsCleared();
