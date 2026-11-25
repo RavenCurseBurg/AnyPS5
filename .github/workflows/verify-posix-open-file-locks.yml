@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-          fetch-depth: 3
+          fetch-depth: 5
       - if: runner.os == 'macOS'
         name: Measure native Darwin open flags as the runner user
         run: |
@@ -50,6 +50,21 @@ jobs:
       - name: Run the additional contention case against the original implementation
         run: |
           git restore --source=HEAD -- "$FS_TEST"
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("core/libs/tests/GuestFilesystem.cpp")
+          source = p.read_text()
+          check = "        Require(open_nid_postfix(lockedName.c_str(), sharedNonblocking | SCE_KERNEL_O_TRUNC, 0) == -1 && *__error_nid_postfix() == 35);"
+          assert source.count(check) == 1
+          p.write_text(source.replace(check, r'''        try {
+                      const int status = open_nid_postfix(lockedName.c_str(), sharedNonblocking | SCE_KERNEL_O_TRUNC, 0);
+                      std::printf("negative control returned %d with errno %d\n", status, *__error_nid_postfix());
+                      return 91;
+                  } catch (const std::runtime_error& ex) {
+                      std::printf("negative control caught: %s\n", ex.what());
+                      return std::string(ex.what()).find("open with O_RDONLY, O_TRUNC and O_SHLOCK or O_EXLOCK") == std::string::npos ? 92 : 0;
+                  }'''))
+          PY
           cmake --build build --parallel 4 --target guest_filesystem_tests
           ulimit -c 0
           python3 - <<'PY'
@@ -57,13 +72,13 @@ jobs:
           result = subprocess.run(["ctest", "--test-dir", "build", "-V", "--no-tests=error", "-R", "^guest_filesystem$"],
                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
           print(result.stdout, flush=True)
-          assert result.returncode and "open with O_RDONLY, O_TRUNC and O_SHLOCK or O_EXLOCK" in result.stdout
+          assert result.returncode == 0 and "negative control caught: " in result.stdout
           PY
         id: negative
         continue-on-error: true
       - name: Build the corrected locked-open path
         run: |
-          git restore --source=HEAD -- "$OPEN_SOURCE"
+          git restore --source=HEAD -- "$OPEN_SOURCE" "$FS_TEST"
           cmake --build build --parallel 4 --target guest_filesystem_tests guest_kernel_sys_tests
       - name: Run both corrected guest tests in three fresh processes each
         run: ctest --test-dir build -V --no-tests=error --repeat until-fail:3 -R '^guest_(filesystem|kernel_sys)$'
