@@ -1,0 +1,45 @@
+name: Verify guest regex_error on macOS
+on:
+  push:
+    branches: [verify/darwin-regex-error]
+permissions:
+  contents: read
+jobs:
+  regex:
+    runs-on: macos-15-intel
+    timeout-minutes: 35
+    env:
+      PR_HEAD: 038792eb11d0112eea128e55467f590107fc556a
+      FIXTURE: core/libs/tests/GuestLibcxxRegexError.cpp
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - name: Configure the two source revisions with the same libc++abi prerequisite
+        run: |
+          sw_vers
+          clang++ --version
+          git submodule update --init --recursive --depth 1 --jobs 8
+          git fetch --no-tags --depth=2 origin 792743bddcaf164f8f8aac7df8ce1d7d1336fc2b
+          git diff FETCH_HEAD^ FETCH_HEAD | git apply
+          git diff --name-only "$PR_HEAD^" "$PR_HEAD"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Run the actual parent compiler command and verify the specific diagnostic
+        run: |
+          git show "$PR_HEAD^:$FIXTURE" > "$FIXTURE"
+          python3 - <<'PY'
+          import os, subprocess
+          source = os.environ["FIXTURE"]
+          lines = subprocess.check_output(["ninja", "-C", "build", "-t", "commands", "guest_libcxx_regex_error_tests"], text=True).splitlines()
+          commands = [s for s in lines if " -c " in s and source in s and "GuestLibcxxRegexError.cpp.o" in s]
+          assert len(commands) == 1, commands
+          result = subprocess.run(commands[0], shell=True, cwd="build", text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+          print(result.stdout, flush=True)
+          assert result.returncode != 0 and "reinterpret_cast" in result.stdout and "casts away qualifiers" in result.stdout
+          PY
+      - name: Build the PR target and run the full guest ABI test five times
+        run: |
+          git show "$PR_HEAD:$FIXTURE" > "$FIXTURE"
+          cmake --build build --parallel 5 --target guest_libcxx_regex_error_tests
+          ctest --test-dir build -V --no-tests=error --repeat until-fail:5 -R '^guest_libcxx_regex_error$'
