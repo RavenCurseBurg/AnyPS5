@@ -1,0 +1,36 @@
+name: Darwin guest kernel CTests with the libc++abi prerequisite
+on:
+  push:
+    branches: [verify/darwin-kernel-ctests]
+permissions:
+  contents: read
+jobs:
+  darwin:
+    runs-on: macos-15-intel
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: git submodule update --init --recursive --depth 1 --jobs 6
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Build the real kernel, libc, network library and test executables
+        id: build
+        run: cmake --build build --parallel 3 --target guest_poll_tests guest_net_kernel_forwards_tests guest_getrusage_tests guest_kernel_sys_wait_tests guest_dynamic_cast_tests
+      - name: Run the guest CTests five times
+        id: tests
+        run: ctest --test-dir build --no-tests=error -R '^guest_(poll$|sce_net_kernel_forwards$|getrusage$|kernel_sys_wait_|dynamic_cast$)' --repeat until-fail:5 --output-on-failure --output-junit "$RUNNER_TEMP/darwin.xml"
+      - name: Locate any failing guest-poll assertion
+        if: failure() && steps.tests.outcome == 'failure'
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          source=Path("core/libs/tests/GuestPoll.cpp")
+          text=source.read_text()
+          old="static void Require(bool value) { if (!value) std::abort(); }"
+          new='static void Require(bool value, std::source_location where=std::source_location::current()) { if (!value) { std::fprintf(stderr,"GuestPoll.cpp:%u in %s\\n",where.line(),where.function_name()); std::abort(); } }'
+          assert text.count(old)==1
+          source.write_text("#include <source_location>\n"+text.replace(old,new))
+          PY
+          cmake --build build --parallel 3 --target guest_poll_tests
+          ctest --test-dir build -R '^guest_poll$' --no-tests=error --output-on-failure
