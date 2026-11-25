@@ -1,0 +1,60 @@
+name: Verify shared Apple audio initialization
+on:
+  push:
+    branches: [verify/apple-shared-audio-initialization]
+permissions:
+  contents: read
+jobs:
+  audio:
+    runs-on: macos-15-intel
+    timeout-minutes: 105
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 3
+      - run: git submodule update --init --recursive --depth 1 --jobs 6
+      - run: cmake -S . -B build -G Ninja -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+      - name: Build the guest libraries and registered audio test binaries
+        run: |
+          python3 - <<'PY'
+          import re, subprocess
+          from pathlib import Path
+          pattern = re.compile(r'^add_test\(\[=\[((?:guest_audio_(?:in|out)|audio_(?:in|out)|apple_shared_audio)[^\]]*)\]=\] "([^"]+)"', re.M)
+          names = sorted({Path(command).name for path in Path("build").rglob("CTestTestfile.cmake")
+                          for name, command in pattern.findall(path.read_text()) if "/tests/" in command})
+          assert {"apple_shared_audio_init_tests", "guest_audio_in_tests", "guest_audio_out_tests", "audio_out_initialization_tests"} <= set(names), names
+          print(len(names), names, flush=True)
+          subprocess.run(["cmake", "--build", "build", "--parallel", "4", "--target", *names], check=True)
+          PY
+      - name: Validate the selected audio suite and Mach-O linkage
+        run: |
+          input_library=build/core/libs/libs/unpatched/libSceAudioIn.prx
+          otool -L "$input_library"
+          nm -u "$input_library" | grep 'InitializeSdlAudio'
+          ctest --test-dir build --output-on-failure --timeout 90 --parallel 3 --no-tests=error -R '^(guest_audio_(in|out)|audio_(in|out)|apple_shared_audio)' --output-junit "$RUNNER_TEMP/apple-audio.xml"
+      - name: Compare the two guest APIs in both opening orders
+        if: always() && hashFiles('build/tests/apple_shared_audio_init_tests') != ''
+        run: |
+          ctest --test-dir build --no-tests=error --repeat until-fail:5 -R '^apple_shared_audio_' -V
+          git show 41a9e4f320:core/libs/prx/libSceAudioIn/Export.cpp > core/libs/prx/libSceAudioIn/Export.cpp
+          cmake --build build --parallel 4 --target apple_shared_audio_init_tests
+          set +e
+          ctest --test-dir build --no-tests=error -R '^apple_shared_audio_' -V --output-junit "$RUNNER_TEMP/previous-audio.xml"
+          previous=$?
+          set -e
+          python3 - "$previous" "$RUNNER_TEMP/previous-audio.xml" <<'PY'
+          import sys, xml.etree.ElementTree as ET
+          tests = {item.get("name"): item for item in ET.parse(sys.argv[2]).iter("testcase")}
+          assert int(sys.argv[1]) != 0, tests
+          assert tests["apple_shared_audio_playback-first"].find("failure") is not None
+          assert tests["apple_shared_audio_capture-first"].find("failure") is None
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: apple-shared-audio-tests
+          path: |
+            ${{ runner.temp }}/apple-audio.xml
+            ${{ runner.temp }}/previous-audio.xml
+          if-no-files-found: ignore
