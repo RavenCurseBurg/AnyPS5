@@ -47,10 +47,15 @@ else()
     set(icu_data_mode unix-exec)
 endif()
 file(TO_NATIVE_PATH "${ICU_SOURCE_DIR}/python" icu_python_path)
+if(CMAKE_HOST_WIN32)
+    set(icu_data_python_args -c "import builtins,runpy,sys\;builtins.exit=sys.exit\;sys.path.insert(0,r'${icu_python_path}')\;runpy.run_module('icutools.databuilder',run_name='__main__')")
+else()
+    set(icu_data_python_args -m icutools.databuilder)
+endif()
 add_custom_command(OUTPUT ${icu_data_dir}/icudt78l_dat.c
     COMMAND ${CMAKE_COMMAND} -E make_directory ${icu_data_dir}/icudt78l ${icu_data_dir}/tmp
     COMMAND ${CMAKE_COMMAND} -E time ${CMAKE_COMMAND} -E env PYTHONPATH=${icu_python_path}
-        ${Python3_EXECUTABLE} -B -m icutools.databuilder
+        ${Python3_EXECUTABLE} -B ${icu_data_python_args}
         --mode=${icu_data_mode} --tool_cfg=host --tool_dir=${icu_host_dir}/bin
         --src_dir=${ICU_SOURCE_DIR}/data --out_dir=${icu_data_dir}/icudt78l --tmp_dir=${icu_data_dir}/tmp
         --filter_file=${CMAKE_SOURCE_DIR}/cmake/IcuDataFilter.json --verbose
