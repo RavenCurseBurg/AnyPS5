@@ -1,0 +1,58 @@
+name: Verify FSR configuration on Darwin
+on:
+  push:
+    branches: [verify/darwin-fsr-sharpness]
+permissions:
+  contents: read
+jobs:
+  sharpness:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, macos-26-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    env:
+      SOURCE: core/libs/prx/libSceAgcDriver/Execution/include
+      PROBE: .github/diagnostics/fsr-sharpness
+      BASE: 63b2e14408
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - name: Prepare the unmodified header
+        run: |
+          mkdir "$RUNNER_TEMP/parent"
+          git show "$BASE:$SOURCE/UpscaleMode.hpp" > "$RUNNER_TEMP/parent/UpscaleMode.hpp"
+          sw_vers
+          uname -m
+      - if: matrix.os == 'macos-15-intel'
+        name: Test the macOS 15 target with three Xcode toolchains
+        run: |
+          status=0
+          for version in 16.4 26.2 26.3; do
+            export DEVELOPER_DIR="/Applications/Xcode_${version}.app/Contents/Developer"
+            xcrun clang++ --version
+            if xcrun clang++ -std=c++20 -arch x86_64 -mmacosx-version-min=15.0 -I"$RUNNER_TEMP/parent" "$PROBE/driver.cpp" -o "$RUNNER_TEMP/original" > "$RUNNER_TEMP/parent.log" 2>&1; then
+              echo "Expected the original header to need floating from_chars"
+              exit 1
+            fi
+            grep -E "from_chars.*(unavailable|deleted)|deleted function 'from_chars'" "$RUNNER_TEMP/parent.log"
+            xcrun clang++ -std=c++20 -arch x86_64 -mmacosx-version-min=15.0 -I"$SOURCE" "$PROBE/driver.cpp" -o "$RUNNER_TEMP/fixed"
+            python3 "$PROBE/compare.py" "$RUNNER_TEMP/fixed" || status=1
+          done
+          exit "$status"
+      - if: matrix.os == 'macos-26-intel'
+        name: Compare with Apple's floating from_chars in the same environment
+        run: |
+          xcrun clang++ --version
+          xcrun clang++ -std=c++20 -arch x86_64 -mmacosx-version-min=26.0 -I"$RUNNER_TEMP/parent" "$PROBE/driver.cpp" -o "$RUNNER_TEMP/original"
+          xcrun clang++ -std=c++20 -arch x86_64 -mmacosx-version-min=26.0 -I"$SOURCE" "$PROBE/driver.cpp" -o "$RUNNER_TEMP/fixed"
+          python3 "$PROBE/compare.py" "$RUNNER_TEMP/fixed" "$RUNNER_TEMP/original"
+      - if: ${{ !cancelled() && matrix.os == 'macos-15-intel' }}
+        name: Compile both production and test translation units for macOS 15
+        run: |
+          git submodule update --init --recursive --depth 1 --jobs 8
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_OSX_DEPLOYMENT_TARGET=15.0 -DCMAKE_OSX_ARCHITECTURES=x86_64
+          cmake --build build --parallel 5 --target core/libs/prx/libSceAgcDriver/CMakeFiles/libSceAgcDriver.dir/Execution/src/VulkanDevice.cpp.o core/libs/prx/libSceAgcDriver/CMakeFiles/agc_driver_presentation_pass_tests.dir/tests/PresentationPass.cpp.o
