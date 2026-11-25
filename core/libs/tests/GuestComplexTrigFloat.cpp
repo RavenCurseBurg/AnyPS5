@@ -48,6 +48,12 @@ int main() {
     Require(__real__ hugeAngle == 0x1.087fd2p+0f && __imag__ hugeAngle == 0x1.1a4e72p-2f);
     const auto nearTangentPole = ctanhf_nid_postfix(Make(0x1p-30f, 0x1.921fb6p+0f));
     Require(__real__ nearTangentPole == 0x1.dbc9d4p+18f && __imag__ nearTangentPole == -0x1.5cec08p+24f);
+    const int tangentRounding = std::fegetround();
+    Require(std::fesetround(FE_UPWARD) == 0);
+    const auto directedPole = ctanhf_nid_postfix(Make(-0x1.356342p-105f, 0x1.921fbep+0f));
+    Require(__real__ directedPole == -0x1.039c10p-63f && __imag__ directedPole == -0x1.d501a6p+20f);
+    Require(std::fegetround() == FE_UPWARD);
+    Require(std::fesetround(tangentRounding) == 0);
     std::feclearexcept(FE_INVALID);
     const auto infiniteAngle = ctanhf_nid_postfix(Make(-0.0f, std::numeric_limits<float>::infinity()));
     Require(__real__ infiniteAngle == 0.0f && std::signbit(__real__ infiniteAngle) && std::isnan(__imag__ infiniteAngle));
