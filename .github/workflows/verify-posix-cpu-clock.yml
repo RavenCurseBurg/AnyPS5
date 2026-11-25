@@ -1,0 +1,58 @@
+name: Compare guest CPU clocks with host resource accounting
+on:
+  push:
+    branches: [verify/posix-cpu-clock-resolution]
+permissions:
+  contents: read
+jobs:
+  clock:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15-intel]
+    timeout-minutes: 45
+    env:
+      HEAD_SHA: 6bc0fdc790b561dcbfcca8a1160bc6bbd65bdf1d
+      IMPL: core/libs/prx/libkernel/Time/Time.cpp
+      FIXTURE: core/libs/tests/GuestFreebsdClocks.cpp
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - run: git submodule update --init --recursive --depth 1 --jobs 8
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxext-dev libxrandr-dev libasound2-dev libpulse-dev
+      - if: runner.os == 'macOS'
+        run: |
+          sw_vers
+          git fetch --no-tags --depth=2 origin 792743bddcaf164f8f8aac7df8ce1d7d1336fc2b
+          git diff FETCH_HEAD^ FETCH_HEAD | git apply
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - name: Run the unmodified PR CTest in five fresh processes
+        run: |
+          cmake --build build --parallel 5 --target guest_freebsd_clocks_tests
+          ctest --test-dir build -V --no-tests=error --repeat until-fail:5 -R '^guest_freebsd_clocks$'
+      - name: Compare the parent guest library with native getrusage brackets
+        if: ${{ !cancelled() }}
+        run: |
+          git restore --source="$HEAD_SHA^" -- "$IMPL"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          test = Path(os.environ['FIXTURE'])
+          text = test.read_text()
+          assert text.count("int main()") == 1
+          test.write_text(text.replace("int main()", "int registeredCases()") + Path(".github/diagnostics/cpu-clock/check.cpp.inc").read_text())
+          PY
+          cmake --build build --parallel 5 --target guest_freebsd_clocks_tests
+          for trial in 1 2 3; do build/tests/guest_freebsd_clocks_tests coarse; done
+      - name: Compare all four PR clock entry points with the native host
+        if: ${{ !cancelled() }}
+        run: |
+          git restore --source="$HEAD_SHA" -- "$IMPL"
+          cmake --build build --parallel 5 --target guest_freebsd_clocks_tests
+          for trial in 1 2 3; do build/tests/guest_freebsd_clocks_tests precise; done
