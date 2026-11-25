@@ -1,7 +1,7 @@
 name: Darwin guest kernel CTests with the libc++abi prerequisite
 on:
   push:
-    branches: [verify/darwin-kernel-ctests]
+    branches: [verify/darwin-kernel-ctests, verify/darwin-combined-poll]
 permissions:
   contents: read
 jobs:
