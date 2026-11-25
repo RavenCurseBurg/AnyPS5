@@ -1,0 +1,36 @@
+name: FreeBSD 11.4 file API references
+on:
+  push:
+    branches: [verify/freebsd-11-file-api]
+permissions:
+  contents: read
+jobs:
+  reference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: .github/diagnostics/freebsd11
+      - uses: vmactions/freebsd-vm@811efaaac0668df8bfb8308c3ec997b5ab50037b
+        with:
+          release: '11.4'
+          arch: x86_64
+          cpu: 2
+          mem: 2048
+          sync: tar
+          copyback: false
+          disable-cache: true
+          run: |
+            set -eu
+            uname -a
+            freebsd-version
+            cc --version
+            work=$(mktemp -d /tmp/anyps5-api.XXXXXX)
+            cc -std=gnu11 -Wall -Wextra -Werror .github/diagnostics/freebsd11/file_api.c -o "$work/file_api"
+            chmod 755 "$work"
+            for round in 1 2 3; do
+              echo "round=$round"
+              su -m nobody -c "$work/file_api"
+            done
