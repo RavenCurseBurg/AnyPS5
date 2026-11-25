@@ -1,0 +1,52 @@
+name: Verify reaped POSIX child CPU time
+on:
+  push:
+    branches: [verify/posix-webkit-child-times]
+permissions:
+  contents: read
+jobs:
+  ticks:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: git submodule update --init --recursive --depth 1 --jobs 6
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxext-dev libxrandr-dev libasound2-dev libpulse-dev
+      - if: runner.os == 'macOS'
+        name: Apply the Darwin libc++abi declaration from PR 26739
+        run: |
+          git fetch --no-tags --depth=2 origin 792743bddcaf164f8f8aac7df8ce1d7d1336fc2b
+          git diff FETCH_HEAD^ FETCH_HEAD | git apply
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - run: cmake --build build --parallel 3 --target guest_posix_times_tests guest_kernel_sys_wait_tests
+      - name: Run the registered tests in fresh processes
+        run: ctest --test-dir build --output-on-failure --no-tests=error --repeat until-fail:5 -R '^guest_(posix_times$|kernel_sys_wait_)'
+      - name: Check the same executable after inheriting previously reaped child time
+        run: |
+          ulimit -c 0
+          python3 - <<'PY'
+          import signal, subprocess, sys
+          from pathlib import Path
+          exe = str(Path("build/tests/guest_posix_times_tests").resolve())
+          helper = r"""
+          import os, resource, subprocess, sys
+          subprocess.run([sys.executable, '-c', 'import time\nwhile time.process_time() < .16: pass'], check=True)
+          cpu = resource.getrusage(resource.RUSAGE_CHILDREN)
+          print(f"Before exec: reaped user={cpu.ru_utime}, system={cpu.ru_stime}", flush=True)
+          assert cpu.ru_utime + cpu.ru_stime >= .14
+          os.execv(sys.argv[1], [sys.argv[1]])
+          """
+          expected = -signal.SIGABRT
+          result = subprocess.run([sys.executable, "-c", helper, exe], timeout=30)
+          print(f"Inherited-counter control returned {result.returncode}, expected {expected}", flush=True)
+          assert result.returncode == expected
+          PY
