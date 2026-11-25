@@ -2,10 +2,12 @@ name: Verify POLLINIGNEOF on Linux and Darwin
 on:
   push:
     branches: [verify/poll-ignore-eof-portability]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
   linux:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -33,7 +35,7 @@ jobs:
         run: |
           for version in 16 15 14; do
             if command -v g++-"$version" >/dev/null; then
-              echo "CC=$(command -v gcc-"$version")" >> "$GITHUB_ENV"
+              echo "CC=$(command -v clang)" >> "$GITHUB_ENV"
               echo "CXX=$(command -v g++-"$version")" >> "$GITHUB_ENV"
               exit 0
             fi
