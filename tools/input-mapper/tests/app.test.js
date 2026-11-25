@@ -510,6 +510,9 @@ test('setting hints give the accepted range and built-in value in the interface 
         assert.equal(inputSetting(app, 'MouseSensitivity').getAttribute('aria-invalid'), invalid, value);
     }
     assert.equal(inputSetting(app, 'MouseCurve').getAttribute('aria-describedby'), `${hint('MouseCurve').id} input-settings-help`);
+    const curveLabel = inputSetting(app, 'MouseCurve').parentElement.querySelector('span');
+    assert.ok(curveLabel.id);
+    assert.equal(inputSetting(app, 'MouseCurve').getAttribute('aria-labelledby'), curveLabel.id);
     assert.equal(hint('MouseStickTarget').textContent, 'Built-in: Right');
     assert.equal(hint('ToggleActions'), undefined);
     assert.equal(inputSetting(app, 'ToggleActions').getAttribute('aria-describedby'), 'input-settings-help');

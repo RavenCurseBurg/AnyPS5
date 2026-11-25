@@ -310,6 +310,7 @@ function renderInputSettings() {
         const choices = kind === 'stickTarget' ? mouseStickTargets : undefined;
         const row = element('label');
         const label = element('span', name);
+        label.id = `setting-${name}-label`;
         label.dir = 'ltr';
         const range = minimumExclusive ? `${minimum} < x ≤ ${maximum}` : `${minimum}–${maximum}`;
         const hint = element('span', [minimum === undefined ? '' : `\u2066${range}\u2069`, builtin === undefined ? '' : t('builtin', {inputs: builtin})].filter(Boolean).join(' · '));
@@ -318,6 +319,7 @@ function renderInputSettings() {
         const control = element(choices ? 'select' : 'input');
         const value = settingValue(name);
         control.dir = 'ltr';
+        control.setAttribute('aria-labelledby', label.id);
         control.setAttribute('aria-describedby', hint.textContent ? `${hint.id} input-settings-help` : 'input-settings-help');
         control.setAttribute('aria-errormessage', 'validation');
         if (choices) {
