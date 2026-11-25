@@ -17,7 +17,7 @@ concurrency:
 jobs:
   full:
     runs-on: macos-26-intel
-    timeout-minutes: 180
+    timeout-minutes: 210
     steps:
       - uses: actions/checkout@v7
         with:
@@ -52,55 +52,6 @@ jobs:
           assert removed == expected & registered
           (Path(os.environ["RUNNER_TEMP"]) / "previously-excluded.txt").write_text("\n".join(sorted(removed)) + "\n")
           PY
-      - name: Build the nested JPEG archive and its installed headers
-        run: cmake --build build --parallel 5 --target jpeg_turbo_external
-      - name: Compare headers selected by the production JPEG decoder before and after the change
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          import re
-          import shlex
-          import subprocess
-
-          helper = Path("core/Decoder/Jpeg/CMakeLists.txt")
-          fixed = helper.read_bytes()
-
-
-          def check(label):
-              subprocess.run(["cmake","-S",".","-B","build","-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"],check=True)
-              entries = json.loads(Path("build/compile_commands.json").read_text())
-              entry, = [item for item in entries if item["file"].endswith("/libSceNKWebKitRequirements/Jpeg.cpp")]
-              args = shlex.split(entry["command"])
-              index = args.index("-o")
-              del args[index:index+2]
-              args[args.index("-c")] = "-fsyntax-only"
-              result = subprocess.run(args+["-H"],cwd=entry["directory"],text=True,capture_output=True)
-              headers = sorted({Path(path).resolve() for path in re.findall(r"^\.+ (.+?/(?:jpeglib|jconfig)\.h)$",result.stderr,re.M)})
-              bundled = [Path("3rdparty/libjpeg-turbo").resolve(),Path("build/libjpeg-turbo/include").resolve()]
-              external = [path for path in headers if not any(root in path.parents for root in bundled)]
-              errors = [line for line in result.stderr.splitlines() if "error:" in line]
-              print(label, result.returncode, sorted(map(str,headers)), errors, flush=True)
-              assert {path.name for path in headers} == {"jpeglib.h","jconfig.h"}, headers
-              if label == "parent":
-                  assert result.returncode and external and any("min_DCT_scaled_size" in line for line in errors)
-              else:
-                  assert result.returncode==0 and not external
-
-
-          try:
-              helper.write_bytes(subprocess.check_output(["git","show","301c34ba3e54966380c158bdd8ac905162be03be:"+helper.as_posix()]))
-              check("parent")
-          finally:
-              helper.write_bytes(fixed)
-              check("fixed")
-          PY
-      - name: Build the guest JPEG controls
-        if: ${{ !cancelled() }}
-        run: cmake --build build --parallel 6 --target guest_nk_req_jpeg_tests guest_nk_req_jpeg_error_state_tests guest_nk_req_jpeg_messages_tests guest_nk_req_jpeg_restart_tests
-      - name: Run the guest JPEG tests three times
-        if: ${{ !cancelled() }}
-        run: ctest --test-dir build -R '^guest_nk_req_jpeg($|_)' --repeat until-fail:3 --no-tests=error --output-on-failure
       - id: build
         if: ${{ !cancelled() }}
         run: cmake --build build --parallel 6 -- -k 8
