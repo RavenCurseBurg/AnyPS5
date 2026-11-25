@@ -1,0 +1,45 @@
+name: Verify the poll fixture on Darwin and Linux
+on:
+  push:
+    branches: [verify/poll-shutdown-remaining-half]
+permissions:
+  contents: read
+jobs:
+  poll:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15-intel, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: git submodule update --init --recursive --depth 1 --jobs 6
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxext-dev libxrandr-dev libasound2-dev libpulse-dev
+      - run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+      - run: cmake --build build --parallel 3 --target guest_poll_tests guest_net_kernel_forwards_tests
+      - name: Complete forwarded socket CTest with the updated fixture
+        run: ctest --test-dir build -R '^guest_sce_net_kernel_forwards$' --repeat until-fail:5 --output-on-failure --no-tests=error
+      - if: runner.os == 'Linux'
+        name: Complete Linux poll CTest
+        run: ctest --test-dir build -R '^guest_poll$' --repeat until-fail:5 --output-on-failure --no-tests=error
+      - if: runner.os == 'macOS'
+        name: Compare stock Darwin poll cases on the parent
+        run: |
+          git fetch --depth 1 origin 098c73473f2d4111bc05cf70ac8d1279afc5dab1
+          git restore --source=FETCH_HEAD -- core/libs/prx/libkernel/Socket/src/Udp.cpp core/libs/tests/GuestPoll.cpp core/libs/tests/GuestNetKernelForwards.cpp
+          python3 - <<'PY'
+          from pathlib import Path
+          src=Path("core/libs/tests/GuestPoll.cpp")
+          old="static void Require(bool value) { if (!value) std::abort(); }"
+          text=src.read_text()
+          assert text.count(old)==1
+          src.write_text(text.replace(old, '#define Require(value) do { if (!(value)) { std::fprintf(stderr,"assertion: %s\\n",#value); std::abort(); } } while(false)'))
+          PY
+          cmake --build build --parallel 3 --target guest_poll_tests guest_net_kernel_forwards_tests
+          ctest --test-dir build -R '^guest_(sce_net_kernel_forwards|poll)$' --repeat until-fail:3 --output-on-failure --no-tests=error
