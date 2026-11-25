@@ -169,6 +169,7 @@ void Run(AgcDriver::VulkanDevice& device) {
     const auto program = Compile(device, SampleCode, userData);
     const CompiledShader shader{ShaderStage::Compute, &program, 0};
     auto resources = std::make_shared<ShaderResources>(context, shader);
+    if (!resources->Revalidate(shader)) resources = std::make_shared<ShaderResources>(context, shader);
     Require(resources->Reusable() && resources->SampledTextures().size() == 1, "the set is not reusable over one texture");
     const auto held = resources->SampledTextures().front();
     Require(!AgcDriver::Graphics::DepthSurfaceAt(surface), "a depth surface holds the surface before the test registers one");
