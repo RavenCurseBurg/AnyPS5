@@ -71,3 +71,20 @@ for name, sha in [("review", "c00db61baa9dd1799f41c1e0c4241a5460aeb9f3"), ("pare
         checked(*flags, "core/libs/tests/GuestGetrusage.cpp", obj, watch, "-o", test)
         result = subprocess.run([test], timeout=30)
         print("Standalone stock GuestGetrusage exit:", result.returncode, flush=True)
+        fixture = Path("core/libs/tests/GuestGetrusage.cpp").read_text()
+        marker = "static void Require(bool value) { if (!value) std::abort(); }"
+        assert marker in fixture
+        fixture = "#include <cstdio>\n#include <source_location>\n" + fixture.replace(marker,
+            'static void Require(bool value, std::source_location at=std::source_location::current()) { if (!value) { std::fprintf(stderr,"accounting assertion %s:%u\\n",at.function_name(),at.line()); std::abort(); } }')
+        fixture = fixture.replace("    Require(MaxResident(0) >= beforeTouch", '    std::fprintf(stderr, "allocation before=%lld after=%lld\\n", (long long)beforeTouch, (long long)MaxResident(0));\n    Require(MaxResident(0) >= beforeTouch')
+        lower = fixture.replace("Require(MaxResident(0) >= beforeTouch + 60000);", "const auto afterTouch = MaxResident(0);\n    Require(afterTouch >= beforeTouch && afterTouch >= 60000);")
+        touched = lower.replace("    Require(touched[touched.size() / 2] == 1);",
+            "    volatile unsigned char* pages = touched.data();\n    for (std::size_t i = 0; i < touched.size(); i += 4096) pages[i] = 1;")
+        assert fixture != lower != touched
+        for variant, source in [("diagnostic", fixture), ("lower", lower), ("touched", touched)]:
+            candidate = output/(variant+".cpp")
+            candidate.write_text(source)
+            checked(*flags, candidate, obj, watch, "-o", test)
+            for i in range(3):
+                result = subprocess.run([test], timeout=30)
+                print("Darwin stock fixture variant", variant, i, "exit", result.returncode, flush=True)
