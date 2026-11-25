@@ -19,7 +19,7 @@ end = fs.index('        Require(unlink_nid_postfix(lockedName.c_str()) == 0);\n 
 end = fs.index("    }", end) + 5
 at_start = ks.index("    constexpr int sharedNonblocking", ks.index("    const int aliased = _openat_nid_postfix"))
 at_end = ks.index("    const int aliasMade = _openat_nid_postfix", at_start)
-headers = fs[:fs.index("static bool ChflagsThrows")]
+headers = '#include "prx/libkernel_sys/include/Api.hpp"\n' + fs[:fs.index("static bool ChflagsThrows")]
 setup = '''
 static int Error() { return *__error_nid_postfix(); }
 static void exercise() {
@@ -57,7 +57,7 @@ if target not in cmake.read_text():
         f.write('''
 add_test_executable(guest_locked_open_focused ${LIBS_INCLUDE_DIR}/tests/GuestLockedOpenFocused.cpp)
 target_include_directories(guest_locked_open_focused PRIVATE ${LIBS_INCLUDE_DIR})
-target_link_libraries(guest_locked_open_focused PRIVATE libkernel libc)
+target_link_libraries(guest_locked_open_focused PRIVATE libkernel_sys libkernel libc)
 add_test(NAME guest_locked_open_focused COMMAND guest_locked_open_focused)
 set_tests_properties(guest_locked_open_focused PROPERTIES TIMEOUT 25)
 ''')
