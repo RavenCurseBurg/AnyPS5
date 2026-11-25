@@ -1,6 +1,7 @@
 #include "prx/libSceAgcDriver/Execution/include/GuestMemory.hpp"
 #include "prx/libSceAgcDriver/Execution/include/VulkanDevice.hpp"
 #include "prx/libSceAgcDriver/Graphics/include/ColorTargetLayout.hpp"
+#include "prx/libSceAgcDriver/Graphics/include/FirstSampleCopy.hpp"
 #include "prx/libSceAgcDriver/Graphics/include/MultisampleTarget.hpp"
 #include "prx/libSceAgcDriver/Graphics/include/Recorder.hpp"
 #include "prx/libSceAgcDriver/Graphics/include/Texture.hpp"
@@ -47,6 +48,8 @@ constexpr std::uint32_t Side = 256;
 struct Image {
     std::uint64_t generation;
     VkDeviceMemory memory;
+    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkImageLayout lastCopySourceLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 };
 
 std::mutex countsMutex;
@@ -66,6 +69,7 @@ PFN_vkCreateImageView realCreateImageView = nullptr;
 PFN_vkDestroyImageView realDestroyImageView = nullptr;
 PFN_vkCmdClearColorImage realClearColorImage = nullptr;
 PFN_vkCmdCopyImage realCopyImage = nullptr;
+PFN_vkCmdPipelineBarrier realPipelineBarrier = nullptr;
 
 [[noreturn]] void FailViewOutlivesImage() {
     std::fputs("an MSAA image would be destroyed before one of its views; stopping\n", stderr);
@@ -154,9 +158,21 @@ VKAPI_ATTR void VKAPI_CALL CountCopyImage(VkCommandBuffer commands, VkImage sour
     {
         std::lock_guard lock(countsMutex);
         pendingImages.emplace_back(source, images.at(source).generation);
+        images.at(source).lastCopySourceLayout = sourceLayout;
         pendingImages.emplace_back(destination, images.at(destination).generation);
     }
     realCopyImage(commands, source, sourceLayout, destination, destinationLayout, count, regions);
+}
+
+VKAPI_ATTR void VKAPI_CALL CountPipelineBarrier(VkCommandBuffer commands, VkPipelineStageFlags source, VkPipelineStageFlags destination, VkDependencyFlags flags, std::uint32_t memoryCount, const VkMemoryBarrier* memory, std::uint32_t bufferCount, const VkBufferMemoryBarrier* buffers, std::uint32_t imageCount, const VkImageMemoryBarrier* barriers) {
+    if (imageCount != 0) {
+        std::lock_guard lock(countsMutex);
+        for (std::uint32_t i = 0; i < imageCount; ++i) {
+            const auto found = images.find(barriers[i].image);
+            if (found != images.end()) found->second.layout = barriers[i].newLayout;
+        }
+    }
+    realPipelineBarrier(commands, source, destination, flags, memoryCount, memory, bufferCount, buffers, imageCount, barriers);
 }
 
 VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL CountingDeviceProc(VkDevice device, const char* name) {
@@ -171,6 +187,7 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL CountingDeviceProc(VkDevice device, con
     if (std::strcmp(name, "vkDestroyImageView") == 0) return reinterpret_cast<PFN_vkVoidFunction>(CountDestroyImageView);
     if (std::strcmp(name, "vkCmdClearColorImage") == 0) return reinterpret_cast<PFN_vkVoidFunction>(CountClearColorImage);
     if (std::strcmp(name, "vkCmdCopyImage") == 0) return reinterpret_cast<PFN_vkVoidFunction>(CountCopyImage);
+    if (std::strcmp(name, "vkCmdPipelineBarrier") == 0) return reinterpret_cast<PFN_vkVoidFunction>(CountPipelineBarrier);
     return function;
 }
 
@@ -303,6 +320,7 @@ public:
         realDestroyImageView = context.Function<PFN_vkDestroyImageView>("vkDestroyImageView");
         realClearColorImage = context.Function<PFN_vkCmdClearColorImage>("vkCmdClearColorImage");
         realCopyImage = context.Function<PFN_vkCmdCopyImage>("vkCmdCopyImage");
+        realPipelineBarrier = context.Function<PFN_vkCmdPipelineBarrier>("vkCmdPipelineBarrier");
         context.deviceProc = CountingDeviceProc;
         context.functions = nullptr;
     }
@@ -599,12 +617,16 @@ public:
         }
         GuestBlock block;
         const auto target = Target(block, VK_FORMAT_B10G11R11_UFLOAT_PACK32);
+        FirstSampleCopy draw(AgcDriver::VulkanDeviceTestAccess::ContextOf(device), target.format, target.extent);
         auto resource = Resource(block);
-        resource.format = 20;
         VkImage renderedImage = VK_NULL_HANDLE, copyImage = VK_NULL_HANDLE, againImage = VK_NULL_HANDLE;
         {
             std::lock_guard lock(AgcDriver::GuestMemory::GpuMutex());
             ImageFor(MultisampleTargetView(context, target), &renderedImage);
+            resource.format = 36;
+            const auto native = MultisampleTargetTexture(context, resource, {});
+            Require(native != nullptr, "the multisampled target has no native sampled view");
+            resource.format = 20;
             const auto texture = MultisampleTargetTexture(context, resource, {});
             Require(texture != nullptr, "a 4x B10G11R11 target sampled as R32_UINT has no texture");
             ImageFor(texture->View(), &copyImage);
@@ -612,6 +634,10 @@ public:
             const auto again = MultisampleTargetTexture(context, resource, {});
             ImageFor(again->View(), &againImage);
             Require(againImage == copyImage, "a repeated R32_UINT read of a 4x B10G11R11 target made another copy image");
+            const auto source = ImageFor(native->View());
+            Require(source.lastCopySourceLayout == VK_IMAGE_LAYOUT_GENERAL || source.lastCopySourceLayout == VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, "the reinterpreted sample copy used an invalid source layout");
+            Require(source.layout == native->Layout(), "the reinterpreted sample copy changed the layout of the held native sampled view");
+            draw.Record(*context.recorder, native->View(), native->Layout());
         }
         Sync();
         block.Unmap();

@@ -1339,6 +1339,7 @@ void Readback(AgcDriver::VulkanDevice& device) {
         Draw(device, state);
         const auto read = ReadHalfSamples(context, color);
         Require(read == LoadColorSamples(device, block, color), "native readback disagrees with independent MIMG sample reads");
+        Require(ReadHalfSamples(context, color) == read, "native readback after a sampled access changed the color samples");
         CheckReadbackSamples(state, read, {});
         {
             std::lock_guard gpu(AgcDriver::GuestMemory::GpuMutex());

@@ -467,14 +467,9 @@ public:
     void makeStorable(Recorder& recorder) {
         if ((usage & VK_IMAGE_USAGE_STORAGE_BIT) != 0) return;
         const auto storable = allocate(usage | VK_IMAGE_USAGE_STORAGE_BIT, storageFlags);
-        const auto source = image;
         recordToGeneral(recorder.Commands(), storable.image);
         RecordMemoryBarrier(context, recorder.Commands(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-        VkImageCopy region{};
-        region.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-        region.dstSubresource = region.srcSubresource;
-        region.extent = {target.extent.width, target.extent.height, 1};
-        context.Function<PFN_vkCmdCopyImage>("vkCmdCopyImage")(recorder.Commands(), source, VK_IMAGE_LAYOUT_GENERAL, storable.image, VK_IMAGE_LAYOUT_GENERAL, 1, &region);
+        copySamplesTo(recorder.Commands(), storable.image, &recorder);
         RecordMemoryBarrier(context, recorder.Commands(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
         Recorder::CountBarriers(Recorder::CommandClass::Draw, 3);
         for (auto& [key, texture] : textures) retiredTextures.push_back(std::move(texture));
@@ -671,11 +666,7 @@ public:
             const auto commands = batch.Handle();
             recordToGeneral(commands, snapshot.image);
             RecordMemoryBarrier(context, commands, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_MEMORY_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-            VkImageCopy region{};
-            region.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-            region.dstSubresource = region.srcSubresource;
-            region.extent = {target.extent.width, target.extent.height, 1};
-            context.Function<PFN_vkCmdCopyImage>("vkCmdCopyImage")(commands, image, VK_IMAGE_LAYOUT_GENERAL, snapshot.image, VK_IMAGE_LAYOUT_GENERAL, 1, &region);
+            copySamplesTo(commands, snapshot.image, nullptr);
             RecordMemoryBarrier(context, commands, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
             for (VkDeviceSize offset = 0; offset < bytes; offset += stride) {
                 const auto count = std::min<VkDeviceSize>(stride, bytes - offset);
@@ -769,16 +760,12 @@ public:
     }
 
     std::shared_ptr<Texture> SampledAs(VkFormat format, VkComponentMapping components, VkImageViewType viewType) {
-        const auto source = Sampled({}, viewType);
+        Sampled({}, viewType);
         auto& copy = reinterpretCopies[format];
         if (copy.allocation.image == VK_NULL_HANDLE) copy.allocation = allocateReinterpret(format);
         recordCommands(context, [&](VkCommandBuffer commands, Recorder* recorder) {
             RecordMemoryBarrier(context, commands, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT);
-            VkImageCopy region{};
-            region.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-            region.dstSubresource = region.srcSubresource;
-            region.extent = {target.extent.width, target.extent.height, 1};
-            context.Function<PFN_vkCmdCopyImage>("vkCmdCopyImage")(commands, image, source->Layout(), copy.allocation.image, VK_IMAGE_LAYOUT_GENERAL, 1, &region);
+            copySamplesTo(commands, copy.allocation.image, recorder);
             RecordMemoryBarrier(context, commands, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
             if (recorder != nullptr) Recorder::CountBarriers(Recorder::CommandClass::Draw, 2);
         });
@@ -1175,19 +1162,38 @@ private:
         }
     }
 
+    void recordLayoutTransition(VkCommandBuffer commands, VkImageLayout previous, VkImageLayout next, VkAccessFlags sourceAccess, VkAccessFlags destinationAccess) {
+        VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+        barrier.srcAccessMask = sourceAccess;
+        barrier.dstAccessMask = destinationAccess;
+        barrier.oldLayout = previous;
+        barrier.newLayout = next;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        context.Resolved(&DeviceFunctions::cmdPipelineBarrier, "vkCmdPipelineBarrier")(commands, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    }
+
+    void copySamplesTo(VkCommandBuffer commands, VkImage destination, Recorder* recorder) {
+        const bool sampled = imageLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        const auto copyLayout = sampled ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL : imageLayout;
+        if (sampled) recordLayoutTransition(commands, imageLayout, copyLayout, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+        VkImageCopy region{};
+        region.srcSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+        region.dstSubresource = region.srcSubresource;
+        region.extent = {target.extent.width, target.extent.height, 1};
+        context.Function<PFN_vkCmdCopyImage>("vkCmdCopyImage")(commands, image, copyLayout, destination, VK_IMAGE_LAYOUT_GENERAL, 1, &region);
+        if (sampled) {
+            recordLayoutTransition(commands, copyLayout, imageLayout, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT);
+            if (recorder != nullptr) Recorder::CountBarriers(Recorder::CommandClass::Draw, 2);
+        }
+    }
+
     void transitionLayout(VkImageLayout next, VkAccessFlags sourceAccess, VkAccessFlags destinationAccess) {
         if (imageLayout == next) return;
         recordCommands(context, [&](VkCommandBuffer commands, Recorder* recorder) {
-            VkImageMemoryBarrier barrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
-            barrier.srcAccessMask = sourceAccess;
-            barrier.dstAccessMask = destinationAccess;
-            barrier.oldLayout = imageLayout;
-            barrier.newLayout = next;
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = image;
-            barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-            context.Resolved(&DeviceFunctions::cmdPipelineBarrier, "vkCmdPipelineBarrier")(commands, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+            recordLayoutTransition(commands, imageLayout, next, sourceAccess, destinationAccess);
             if (recorder != nullptr) Recorder::CountBarriers(Recorder::CommandClass::Draw, 1);
         });
         imageLayout = next;
