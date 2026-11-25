@@ -47,6 +47,14 @@ jobs:
       - name: Build and run the PR's guest CTests
         if: always()
         run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path("CMakeLists.txt")
+          before=path.read_text()
+          flag_block="if(APPLE AND NOT ANYPS5_RELINKER_ONLY)\n    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fexperimental-library>)"
+          assert before.count(flag_block)==1
+          path.write_text(before.replace(flag_block, flag_block.replace("NOT ANYPS5_RELINKER_ONLY)", 'NOT ANYPS5_RELINKER_ONLY AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")')))
+          PY
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DCMAKE_OBJC_COMPILER=clang -DCMAKE_OBJCXX_COMPILER=clang++
           cmake --build build --parallel 3 --target guest_poll_tests guest_net_kernel_forwards_tests
           ctest --test-dir build --no-tests=error -R '^guest_(poll|sce_net_kernel_forwards)$' --repeat until-fail:5 --output-on-failure
