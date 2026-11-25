@@ -238,7 +238,7 @@ public:
         });
         const std::array<std::uint32_t, 4> key{static_cast<std::uint32_t>(components.r), static_cast<std::uint32_t>(components.g), static_cast<std::uint32_t>(components.b), static_cast<std::uint32_t>(components.a)};
         if (const auto found = textures.find(key); found != textures.end()) return found->second;
-        auto texture = std::make_shared<Texture>(context, image, target.format, VK_IMAGE_ASPECT_COLOR_BIT, components);
+        auto texture = std::make_shared<Texture>(context, image, target.format, VK_IMAGE_ASPECT_COLOR_BIT, components, VK_IMAGE_VIEW_TYPE_2D, 0, std::shared_ptr<OwnedImage>{}, VK_IMAGE_USAGE_SAMPLED_BIT);
         textures.emplace(key, texture);
         return texture;
     }
