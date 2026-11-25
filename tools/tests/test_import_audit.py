@@ -4351,7 +4351,8 @@ class FastScanTests(unittest.TestCase):
             lib = root / "libSceSample"
             (lib / "tests").mkdir(parents=True)
             (lib / "test").mkdir(parents=True)
-            (lib / "Tests").mkdir(parents=True)
+            upper_tests = lib / "src" / "Tests"
+            upper_tests.mkdir(parents=True)
             (lib / ".cpp").write_text(
                 'APS5_EXPORT("AAAAAAAAAAA", sceDotFile)\n' + STUB_SOURCE.format(name="sceDotFile"),
                 encoding="utf-8",
@@ -4364,7 +4365,7 @@ class FastScanTests(unittest.TestCase):
                 'APS5_EXPORT("CCCCCCCCCCC", sceInLowerTest)\n' + DONE_SOURCE.format(name="sceInLowerTest"),
                 encoding="utf-8",
             )
-            (lib / "Tests" / "upper_skip.cpp").write_text(
+            (upper_tests / "upper_skip.cpp").write_text(
                 'APS5_EXPORT("DDDDDDDDDDD", sceInUpperTests)\n' + DONE_SOURCE.format(name="sceInUpperTests"),
                 encoding="utf-8",
             )
