@@ -13,12 +13,14 @@ int main(int argc, char** argv) {
     Require(argc == 2);
     const bool coarse = std::strcmp(argv[1], "coarse") == 0;
     constexpr int count = 8192;
+    volatile std::uint64_t work = 1;
     for (const int variant : {1, 2, 21, 102}) {
         int outside = 0, backwards = 0, nonmicro = 0, advances = 0;
         std::int64_t previous = 0;
         auto minimum = std::numeric_limits<std::int64_t>::max();
         std::int64_t largestMiss = 0;
         for (int sample = 0; sample < count; ++sample) {
+            for (int i = 0; i < 2048; ++i) work = work * 1664525U + 1013904223U;
             const auto low = 1000 * hostMicros(variant != 1);
             std::int64_t current;
             if (variant == 102) {
