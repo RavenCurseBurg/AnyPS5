@@ -47,12 +47,15 @@ int main() {
         free_nid_postfix(list);
     }
 
-    const char* malformed[] = {"", "8", "u+q", "0777777"};
+    const char* malformed[] = {"", "8", "u+q", "0777777", "20000000000", "777777777777777777777", "1000000000000000000000x"};
     for (const char* mode : malformed) {
         *__error_nid_postfix() = 0;
         Require(setmode_nid_postfix(mode) == nullptr);
         Require(*__error_nid_postfix() == 22);
     }
+    *__error_nid_postfix() = 0;
+    Require(setmode_nid_postfix("1000000000000000000000") == nullptr);
+    Require(*__error_nid_postfix() == 34);
 
     umask_nid_postfix(saved);
     return 0;

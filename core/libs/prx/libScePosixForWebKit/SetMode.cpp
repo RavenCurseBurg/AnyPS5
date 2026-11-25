@@ -37,7 +37,6 @@
 #include "prx/libScePosixForWebKit/include/Api.hpp"
 #include <cctype>
 #include <cerrno>
-#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -272,10 +271,10 @@ extern "C" void* APS5_VABI setmode_nid_postfix(const char* p) {
     if (std::isdigit(static_cast<unsigned char>(*p))) {
         errno = 0;
         char* end = nullptr;
-        const long perml = std::strtol(p, &end, 8);
+        const std::int64_t perml = std::strtoll(p, &end, 8);
         if (*end != '\0') return Fail(list, GuestEinval);
-        if (errno == ERANGE && (perml == LONG_MAX || perml == LONG_MIN)) return Fail(list, GuestErange);
-        if (perml & ~static_cast<long>(StandardBits | SIstxt)) return Fail(list, GuestEinval);
+        if (errno == ERANGE) return Fail(list, GuestErange);
+        if (perml & ~static_cast<std::int64_t>(StandardBits | SIstxt)) return Fail(list, GuestEinval);
         const ModeT perm = static_cast<ModeT>(perml);
         if (!Add(list, '=', static_cast<ModeT>(StandardBits | SIstxt), perm, mask)) return Fail(list, GuestEnomem);
         list.next->cmd = 0;
