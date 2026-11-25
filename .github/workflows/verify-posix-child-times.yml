@@ -34,7 +34,7 @@ jobs:
         run: |
           ulimit -c 0
           python3 - <<'PY'
-          import signal, subprocess, sys
+          import subprocess, sys
           from pathlib import Path
           exe = str(Path("build/tests/guest_posix_times_tests").resolve())
           helper = r"""
@@ -45,8 +45,22 @@ jobs:
           assert cpu.ru_utime + cpu.ru_stime >= .14
           os.execv(sys.argv[1], [sys.argv[1]])
           """
-          expected = -signal.SIGABRT
-          result = subprocess.run([sys.executable, "-c", helper, exe], timeout=30)
-          print(f"Inherited-counter control returned {result.returncode}, expected {expected}", flush=True)
-          assert result.returncode == expected
+          for attempt in range(5):
+              subprocess.run([sys.executable, "-c", helper, exe], check=True, timeout=30)
+              print(f"Inherited-counter trial {attempt + 1} passed", flush=True)
+          PY
+      - name: Check that the revised fixture still detects the old zero-counter implementation
+        run: |
+          ulimit -c 0
+          git fetch --no-tags --depth=1 origin 6329c2edc837744b0cd87c6e64932fd256235b3e
+          path=core/libs/prx/libScePosixForWebKit/Times.cpp
+          git show "FETCH_HEAD:$path" > "$path"
+          cmake --build build --parallel 3 --target guest_posix_times_tests
+          python3 - <<'PY'
+          import signal, subprocess
+          from pathlib import Path
+          exe = Path("build/tests/guest_posix_times_tests").resolve()
+          result = subprocess.run([exe], timeout=30)
+          print(f"Old implementation returned {result.returncode}, expected {-signal.SIGABRT}", flush=True)
+          assert result.returncode == -signal.SIGABRT
           PY
