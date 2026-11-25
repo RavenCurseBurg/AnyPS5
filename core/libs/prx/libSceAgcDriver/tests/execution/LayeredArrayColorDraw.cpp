@@ -1,6 +1,7 @@
 #include "prx/libSceAgcDriver/Execution/include/GuestMemory.hpp"
 #include "prx/libSceAgcDriver/Execution/include/VulkanDevice.hpp"
 #include "prx/libSceAgcDriver/Graphics/include/Draw.hpp"
+#include "prx/libSceAgcDriver/Graphics/include/Recorder.hpp"
 #include "prx/libSceAgcDriver/Graphics/include/ShaderInputState.hpp"
 #include "prx/libSceAgcDriver/Graphics/include/State.hpp"
 #include "prx/libSceAgcDriver/Graphics/include/Texture.hpp"
@@ -22,9 +23,11 @@
 #include <bit>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <span>
 #include <string>
 #include <vector>
@@ -33,6 +36,14 @@
 // slices: (a) slices 1 to 3 of a four-slice 2D array, (b) slices 0 to 2 of a surface of one slice.
 // Each layer is filled with its own value; after the write-back every slice of guest memory must hold
 // its layer's value, and the slices outside the view their initial bytes.
+
+namespace AgcDriver {
+
+struct VulkanDeviceTestAccess {
+    static Graphics::Context ContextOf(const VulkanDevice& device) { return device.graphicsContext(); }
+};
+
+}
 
 namespace {
 
@@ -249,6 +260,50 @@ void Run(AgcDriver::VulkanDevice& device, std::uint8_t* texels, std::uint32_t la
     }
 }
 
+void SlicePasses(AgcDriver::VulkanDevice& device, std::uint8_t* texels, std::uint8_t* vertices) {
+    using namespace AgcDriver::Graphics;
+    const auto surface = AddressOf(texels);
+    std::fill_n(reinterpret_cast<std::uint32_t*>(texels), SurfaceBytes / 4u, Kept);
+    AgcDriver::GuestMemory::CollectWrites(surface, SurfaceBytes);
+    AgcDriver::GuestMemory::BumpCollectEpoch();
+    const auto view = [&](std::uint32_t first) {
+        return Prepare(device, DecodeColor(surface, Slices - 1, first, 2), {{0, 0}, {Side, Side}}, vertices);
+    };
+    const auto first = view(0);
+    const auto disjoint = view(2);
+    const auto overlap = view(1);
+    const auto context = AgcDriver::VulkanDeviceTestAccess::ContextOf(device);
+    device.WaitIdle();
+    std::uint64_t disjointBreaks, overlapBreaks;
+    {
+        std::lock_guard gpu(AgcDriver::GuestMemory::GpuMutex());
+        Recorder recorder(context);
+        recorder.Activate();
+        const auto draw = [&](const PreparedDraw& prepared) {
+            const auto image = static_cast<std::size_t>(PassBreak::Image);
+            const auto before = DrawPassBreaks()[image];
+            AgcDriver::Graphics::Draw(context, prepared.state, prepared.draw, prepared.Shaders());
+            return DrawPassBreaks()[image] - before;
+        };
+        draw(*first);
+        disjointBreaks = draw(*disjoint);
+        overlapBreaks = draw(*overlap);
+        recorder.Submit();
+        recorder.Sync();
+    }
+    StorageTexture::FlushPending(surface, SurfaceBytes, nullptr, "layered array pass test");
+    device.WaitIdle();
+    constexpr std::array<unsigned, Slices> expectedLayers{0, 0, 1, 1};
+    for (unsigned slice = 0; slice < Slices; ++slice) {
+        const auto expected = std::bit_cast<std::uint32_t>(LayerValue(expectedLayers[slice]));
+        const auto* words = reinterpret_cast<const std::uint32_t*>(texels + slice * SliceBytes);
+        Require(std::all_of(words, words + SliceBytes / sizeof(*words), [&](auto word) { return word == expected; }),
+                "layered array pass readback differs on slice " + std::to_string(slice));
+    }
+    Require(disjointBreaks == 0, "disjoint color slices caused an image hazard break");
+    Require(overlapBreaks == 1, "overlapping color slices did not cause one image hazard break");
+}
+
 void RecipeRun(AgcDriver::VulkanDevice& device, std::uint8_t* texels, std::uint8_t* vertices) {
     constexpr std::uint32_t Written = 0x3c3c3c3cu;
     constexpr std::uint32_t CpuSlice = 2;
@@ -280,8 +335,16 @@ void RecipeRun(AgcDriver::VulkanDevice& device, std::uint8_t* texels, std::uint8
 
 }
 
-int main() {
+int main(int argc, char** argv) {
     try {
+        const bool passes = argc == 2 && std::strcmp(argv[1], "--slice-passes") == 0;
+        if (passes) {
+#ifdef _WIN32
+            _putenv_s("APS5_PROFILE_DRAW", "1");
+#else
+            setenv("APS5_PROFILE_DRAW", "1", 1);
+#endif
+        }
         GuestBlock array;
         GuestBlock single;
         GuestBlock vertices;
@@ -291,6 +354,10 @@ int main() {
         if (std::find(target.supportedCapabilities.begin(), target.supportedCapabilities.end(), ShaderViewportIndexLayerCapability) == target.supportedCapabilities.end()) {
             std::puts("skipped, the device has no VK_EXT_shader_viewport_index_layer");
             return VulkanTestSkipped;
+        }
+        if (passes) {
+            SlicePasses(*device, array.Data(), vertices.Data());
+            return 0;
         }
         Run(*device, array.Data(), Slices - 1u, 1, 3, "a layered draw into slices 1 to 3 of a four-slice 2D array");
         Run(*device, single.Data(), 0, 0, 3, "a layered draw into slices 0 to 2 of a surface of one slice");
