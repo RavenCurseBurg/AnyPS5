@@ -1,0 +1,73 @@
+name: Verify locked guest opens on POSIX hosts
+on:
+  push:
+    branches: [verify/posix-open-file-locks]
+permissions:
+  contents: read
+jobs:
+  locks:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    env:
+      PR_HEAD: 8f69906fdb5ec3ddf4df0d4800dbf082dd8f9e7d
+      OPEN_SOURCE: core/libs/prx/libkernel/File/src/Open.cpp
+      FS_TEST: core/libs/tests/GuestFilesystem.cpp
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 3
+      - if: runner.os == 'macOS'
+        name: Measure native Darwin open flags as the runner user
+        run: |
+          uname -a
+          cc -std=gnu11 -Wall -Wextra -Werror .github/diagnostics/open-locks/native_open.c -o "$RUNNER_TEMP/native-open"
+          for i in 1 2 3; do "$RUNNER_TEMP/native-open"; done
+      - run: git submodule update --init --recursive --depth 1 --jobs 6
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxext-dev libxrandr-dev libasound2-dev libpulse-dev
+      - if: runner.os == 'macOS'
+        name: Apply the Darwin libc++abi declaration from PR 26739
+        run: |
+          git fetch --no-tags --depth=2 origin 792743bddcaf164f8f8aac7df8ce1d7d1336fc2b
+          git diff FETCH_HEAD^ FETCH_HEAD | git apply
+      - name: Build the original PR's implementation and both guest fixtures
+        run: |
+          git show "$PR_HEAD:$OPEN_SOURCE" > "$OPEN_SOURCE"
+          git show "$PR_HEAD:$FS_TEST" > "$FS_TEST"
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake --build build --parallel 4 --target guest_filesystem_tests guest_kernel_sys_tests
+      - name: Run the original registered filesystem and kernel tests
+        id: stock
+        continue-on-error: true
+        run: ctest --test-dir build -V --no-tests=error --repeat until-fail:3 -R '^guest_(filesystem|kernel_sys)$'
+      - name: Run the additional contention case against the original implementation
+        run: |
+          git restore --source=HEAD -- "$FS_TEST"
+          cmake --build build --parallel 4 --target guest_filesystem_tests
+          ulimit -c 0
+          python3 - <<'PY'
+          import subprocess
+          result = subprocess.run(["ctest", "--test-dir", "build", "-V", "--no-tests=error", "-R", "^guest_filesystem$"],
+                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+          print(result.stdout, flush=True)
+          assert result.returncode and "open with O_RDONLY, O_TRUNC and O_SHLOCK or O_EXLOCK" in result.stdout
+          PY
+        id: negative
+        continue-on-error: true
+      - name: Build the corrected locked-open path
+        run: |
+          git restore --source=HEAD -- "$OPEN_SOURCE"
+          cmake --build build --parallel 4 --target guest_filesystem_tests guest_kernel_sys_tests
+      - name: Run both corrected guest tests in three fresh processes each
+        run: ctest --test-dir build -V --no-tests=error --repeat until-fail:3 -R '^guest_(filesystem|kernel_sys)$'
+      - name: Check original and negative controls
+        run: |
+          test "${{ steps.stock.outcome }}" = success
+          test "${{ steps.negative.outcome }}" = success
