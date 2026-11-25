@@ -5,38 +5,13 @@ on:
 permissions:
   contents: read
 jobs:
-  toolchains:
-    runs-on: macos-15-intel
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - name: Compile the production FSR option parser with the available Apple SDKs
-        run: |
-          sw_vers
-          cat > "$RUNNER_TEMP/upscale.cpp" <<'CPP'
-          #include "core/libs/prx/libSceAgcDriver/Execution/include/UpscaleMode.hpp"
-          int main() { return AgcDriver::SelectUpscaleMode("fsr", "1.25").sharpness == 1.25f ? 0 : 1; }
-          CPP
-          for version in 16.4 26.3 26.2; do
-            xcode="/Applications/Xcode_${version}.app/Contents/Developer"
-            if [[ -d "$xcode" ]]; then
-              if DEVELOPER_DIR="$xcode" xcrun --sdk macosx clang++ -std=c++20 -arch x86_64 -mmacosx-version-min=15.0 -I. "$RUNNER_TEMP/upscale.cpp" -o "$RUNNER_TEMP/upscale" && "$RUNNER_TEMP/upscale"; then
-                echo "Xcode $version builds and runs the parser for macOS 15."
-              else
-                echo "Xcode $version cannot build and run the parser for macOS 15."
-              fi
-            fi
-          done
   audio:
-    runs-on: macos-26
+    runs-on: macos-26-intel
     timeout-minutes: 105
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - run: sudo softwareupdate --install-rosetta --agree-to-license
       - run: git submodule update --init --recursive --depth 1 --jobs 6
       - run: cmake -S . -B build -G Ninja -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
       - name: Build the guest libraries and registered audio test binaries
