@@ -1,7 +1,6 @@
 name: AudioIn FIFO validation
 on:
-  push:
-    branches: [verify/audioin-opening-fifo-linux]
+  workflow_dispatch: {}
 permissions:
   contents: read
 jobs:
