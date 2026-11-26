@@ -496,8 +496,8 @@ class CTestBundleCMakeTests(CTestFixture, unittest.TestCase):
         self.assertEqual(reported.returncode, 8)
         self.assertEqual(sanitizer_report.results(report), {
             "passed": "passed", "failed": "failed", "skipped": "skipped", "regex_skip": "skipped",
-            "timeout": "failed", "disabled": "skipped", "missing": "failed",
-            "fixture_setup": "failed", "fixture_consumer": "failed",
+            "timeout": "failed", "disabled": "skipped", "missing": "notrun",
+            "fixture_setup": "failed", "fixture_consumer": "notrun",
         })
         original_xml, original_log = report.read_bytes(), log.read_bytes()
         result = self.run_bundle("finish", self.directory, "failure")
