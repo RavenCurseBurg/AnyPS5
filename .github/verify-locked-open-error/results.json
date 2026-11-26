@@ -1,0 +1,49 @@
+{
+  "head": "27fa36efd5c02b0d386622ad3d77b03a071d5a20",
+  "results": {
+    "unchanged": {
+      "guest_kernel_sys": 3,
+      "guest_filesystem": 3,
+      "guest_kernel_app_archive_archive": 3,
+      "guest_kernel_app_archive_plain": 3
+    },
+    "reviewed": {
+      "exit": 0,
+      "observations": [
+        [
+          "8002001c",
+          "-1",
+          "28",
+          "1",
+          "6"
+        ],
+        [
+          "8002001c",
+          "-1",
+          "28",
+          "1",
+          "6"
+        ],
+        [
+          "8002001c",
+          "-1",
+          "28",
+          "1",
+          "6"
+        ]
+      ]
+    },
+    "late-read-control": {
+      "exit": 8,
+      "observations": [
+        [
+          "80020009",
+          "-1",
+          "9",
+          "1",
+          "6"
+        ]
+      ]
+    }
+  }
+}

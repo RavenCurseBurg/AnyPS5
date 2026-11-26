@@ -1,0 +1,11 @@
+--- a/core/libs/prx/libkernel/File/src/Open.cpp
++++ b/core/libs/prx/libkernel/File/src/Open.cpp
+@@ -383,7 +383,7 @@
+     }
+     if (error == 0) return fd;
+     sceKernelClose(fd);
+-    return SceKernelError(error);
++    return SceKernelError(*__error_nid_postfix());
+ }
+
+ void File::ForgetClosedDescriptor(int descriptor) {

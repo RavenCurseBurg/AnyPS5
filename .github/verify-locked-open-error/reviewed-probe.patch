@@ -1,0 +1,60 @@
+--- a/core/libs/prx/libkernel/File/src/Stdio.cpp
++++ b/core/libs/prx/libkernel/File/src/Stdio.cpp
+@@ -1300,7 +1300,7 @@
+     }
+     if (File::IsArchivedFile(d)) return PosixFailure(GUEST_EINVAL);
+ #ifdef _WIN32
+-    int error = NativeFtruncate(d, length);
++    int error = (length == 0 && std::filesystem::exists(".anyps5-27300-truncate-error-probe")) ? ENOSPC : NativeFtruncate(d, length);
+     if (error != 0) {
+         if (error == EACCES) error = GUEST_EINVAL;
+         return PosixFailure(SceErrorFromErrno(error) & 0xffff);
+--- a/core/libs/prx/libkernel/File/src/Open.cpp
++++ b/core/libs/prx/libkernel/File/src/Open.cpp
+@@ -467,7 +467,7 @@
+ }
+
+ int APS5_VABI sceKernelClose(int d) {
+-    return File::RunKernelFileCall([&]() -> int {
++    const int closed = File::RunKernelFileCall([&]() -> int {
+         if (File::IsHostStream(d)) return SCE_KERNEL_ERROR_EPERM;
+         int socketError = 0;
+         if (KernelCloseSocket_nid_no_patch(d, &socketError)) return socketError == 0 ? 0 : SceKernelError(socketError);
+@@ -483,6 +483,8 @@
+         }
+         return 0;
+     });
++    if (std::filesystem::exists(".anyps5-27300-truncate-error-probe")) *__error_nid_postfix() = 9;
++    return closed;
+ }
+
+ static std::int64_t KernelRead(int d, void* buf, std::size_t nbytes) {
+--- a/core/libs/tests/GuestFilesystem.cpp
++++ b/core/libs/tests/GuestFilesystem.cpp
+@@ -1909,6 +1909,26 @@
+     Require(flock_nid_postfix(holder, 8) == 0);
+     Require(close_nid_postfix(contender) == 0 && close_nid_postfix(holder) == 0);
+     {
++
++        const auto diagnostic = root / "diagnostic-locked-truncate.txt";
++        const auto path = diagnostic.string();
++        std::ofstream(diagnostic, std::ios::binary) << "abcdef";
++        const int original = open_nid_postfix(path.c_str(), SCE_KERNEL_O_RDONLY, 0);
++        Require(original >= 0 && close_nid_postfix(original) == 0);
++        std::ofstream(".anyps5-27300-truncate-error-probe") << "armed";
++        const int flags = SCE_KERNEL_O_RDWR | SCE_KERNEL_O_EXLOCK | SCE_KERNEL_O_TRUNC;
++        const int kernel = sceKernelOpen(path.c_str(), flags, 0);
++        const int posix = open_nid_postfix(path.c_str(), flags, 0);
++        const int posixError = *__error_nid_postfix();
++        std::filesystem::remove(".anyps5-27300-truncate-error-probe");
++        const int diagnosticReused = open_nid_postfix(path.c_str(), SCE_KERNEL_O_RDWR | SCE_KERNEL_O_EXLOCK | SCE_KERNEL_O_NONBLOCK, 0);
++        const auto size = std::filesystem::file_size(diagnostic);
++        std::fprintf(stderr, "truncate probe kernel=%08x posix=%d errno=%d reusable=%d size=%llu\n",
++                     static_cast<unsigned>(kernel), posix, posixError, diagnosticReused == original, static_cast<unsigned long long>(size));
++        Require(diagnosticReused == original && close_nid_postfix(diagnosticReused) == 0 && size == 6);
++        Require(std::filesystem::remove(diagnostic));
++        Require(kernel == SceKernelError(28) && posix == -1 && posixError == 28);
++
+         const auto lockedFile = root / "open-lock.txt";
+         const auto lockedName = lockedFile.string();
+         constexpr int sharedNonblocking = SCE_KERNEL_O_RDONLY | SCE_KERNEL_O_SHLOCK | SCE_KERNEL_O_NONBLOCK;
