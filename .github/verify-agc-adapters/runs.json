@@ -1,0 +1,369 @@
+{
+  "head": "cf76855f205da53a08e86feea930c75f7d2f217c",
+  "executable_sha256": {
+    "agc_driver_linear_target_import_creation": "04f5cf380a0e427f6f927453aacf0adff8b4af15c9c18b5a0e18b12388f8660a",
+    "agc_driver_store_over_untracked": "eb0f3e64c9c06ef51dd18976b4938fc9c7c1be5c58d3105c9fcfb5a0573e27fd"
+  },
+  "rows": [
+    {
+      "gpu": "RTX 4060",
+      "validation": true,
+      "repeat": 1,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: private gate: a color target's import of direct memory under the settle floor was made where it would be compared"
+      ]
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": true,
+      "repeat": 1,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: a pending storage result was stored over bytes the CPU wrote to untracked memory"
+      ]
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": false,
+      "repeat": 1,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: private gate: a color target's import of direct memory under the settle floor was made where it would be compared"
+      ]
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": false,
+      "repeat": 1,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: a pending storage result was stored over bytes the CPU wrote to untracked memory"
+      ]
+    },
+    {
+      "gpu": "UHD",
+      "validation": true,
+      "repeat": 1,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "UHD",
+      "validation": true,
+      "repeat": 1,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "UHD",
+      "validation": false,
+      "repeat": 1,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "UHD",
+      "validation": false,
+      "repeat": 1,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": true,
+      "repeat": 2,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: private gate: a color target's import of direct memory under the settle floor was made where it would be compared"
+      ]
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": true,
+      "repeat": 2,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: a pending storage result was stored over bytes the CPU wrote to untracked memory"
+      ]
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": false,
+      "repeat": 2,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: private gate: a color target's import of direct memory under the settle floor was made where it would be compared"
+      ]
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": false,
+      "repeat": 2,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: a pending storage result was stored over bytes the CPU wrote to untracked memory"
+      ]
+    },
+    {
+      "gpu": "UHD",
+      "validation": true,
+      "repeat": 2,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "UHD",
+      "validation": true,
+      "repeat": 2,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "UHD",
+      "validation": false,
+      "repeat": 2,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "UHD",
+      "validation": false,
+      "repeat": 2,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": true,
+      "repeat": 3,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: private gate: a color target's import of direct memory under the settle floor was made where it would be compared"
+      ]
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": true,
+      "repeat": 3,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: a pending storage result was stored over bytes the CPU wrote to untracked memory"
+      ]
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": false,
+      "repeat": 3,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: private gate: a color target's import of direct memory under the settle floor was made where it would be compared"
+      ]
+    },
+    {
+      "gpu": "RTX 4060",
+      "validation": false,
+      "repeat": 3,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "NVIDIA GeForce RTX 4060 vendor=0x10de device=0x2882 subgroup=32"
+      ],
+      "status": "fail",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": [
+        "AGC graphics: a pending storage result was stored over bytes the CPU wrote to untracked memory"
+      ]
+    },
+    {
+      "gpu": "UHD",
+      "validation": true,
+      "repeat": 3,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "UHD",
+      "validation": true,
+      "repeat": 3,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": true,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "UHD",
+      "validation": false,
+      "repeat": 3,
+      "test": "agc_driver_linear_target_import_creation",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    },
+    {
+      "gpu": "UHD",
+      "validation": false,
+      "repeat": 3,
+      "test": "agc_driver_store_over_untracked",
+      "device": [
+        "Intel(R) UHD Graphics 770 vendor=0x8086 device=0xa780 subgroup=32"
+      ],
+      "status": "pass",
+      "validation_layer_inserted": false,
+      "vuids": [],
+      "sync_hazards": [],
+      "diagnostic": []
+    }
+  ]
+}
