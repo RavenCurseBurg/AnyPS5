@@ -1,0 +1,29 @@
+--- a/core/libs/prx/libSceAgcDriver/tests/execution/SampleMultisampleTarget.cpp
++++ b/core/libs/prx/libSceAgcDriver/tests/execution/SampleMultisampleTarget.cpp
+@@ -2130,6 +2130,26 @@
+         expected[target.dccAlphaOnMsb ? 3u : 0u] = 1.0f;
+         CheckUniform(LoadSamples(device, words, samples), expected, "a DCC texture before its first color-target use");
+         if (mode == 0u) {
++            std::shared_ptr<void> oldOwner;
++            VkImage oldImage = VK_NULL_HANDLE;
++            VkImageView oldView = VK_NULL_HANDLE;
++            {
++                std::lock_guard gpu(AgcDriver::GuestMemory::GpuMutex());
++                oldView = MultisampleTargetView(context, target, oldOwner, &oldImage);
++                Require(RepeatMultisampleTargetView(context, target, oldOwner, oldImage, oldView), "a live DCC attachment did not replay after taking its register state");
++            }
++            clear();
++            CheckUniform(LoadSamples(device, words, samples), expected, "reimporting a DCC texture before replay");
++            {
++                std::lock_guard gpu(AgcDriver::GuestMemory::GpuMutex());
++                Require(!RepeatMultisampleTargetView(context, target, oldOwner, oldImage, oldView), "a retired attachment replayed on the reimported DCC texture");
++                std::shared_ptr<void> newOwner;
++                VkImage newImage = VK_NULL_HANDLE;
++                const auto newView = MultisampleTargetView(context, target, newOwner, &newImage);
++                Require(newOwner != oldOwner && RepeatMultisampleTargetView(context, target, newOwner, newImage, newView), "the reimported DCC texture did not acquire register state and replay");
++            }
++            std::fprintf(stderr, "DCC register-state replay checked at %ux\n", samples);
++
+             bind(target);
+             CheckUniform(LoadSamples(device, words, samples), expected, "a DCC texture whose owner took CMASK, FMASK and DCC control");
+             bind(target);
