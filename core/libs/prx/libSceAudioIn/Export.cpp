@@ -15,6 +15,7 @@
 #include <array>
 #include <chrono>
 #include <cstring>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -71,7 +72,7 @@ std::mutex g_mutex;
 std::mutex g_openMutex;
 std::array<Port, 8> g_ports{};
 bool g_sdlAudio = false;
-bool g_openStalled = false;
+std::weak_ptr<void> g_abandonedOpen;
 std::int32_t g_mode = 0;
 constexpr std::chrono::milliseconds OPEN_LIMIT{3000};
 
@@ -87,6 +88,7 @@ bool formatOf(std::uint32_t param, Format& format) {
 }
 
 SDL_AudioDeviceID openDevice(std::uint32_t freq, std::uint32_t samples, const Format& format, std::string_view requestedName) {
+    if (!g_abandonedOpen.expired()) return 0;
     if (!g_sdlAudio) {
         if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) return 0;
         g_sdlAudio = true;
@@ -111,7 +113,6 @@ SDL_AudioDeviceID openDevice(std::uint32_t freq, std::uint32_t samples, const Fo
         if (!name) return 0;
         selectedName = name;
     }
-    if (g_openStalled) return 0;
     const auto opened = audioin::detail::openWithin(OPEN_LIMIT,
         [selectedName, named, desired]() mutable {
             SDL_AudioSpec obtained{};
@@ -120,7 +121,7 @@ SDL_AudioDeviceID openDevice(std::uint32_t freq, std::uint32_t samples, const Fo
             return static_cast<std::uint32_t>(device);
         },
         [](std::uint32_t device) { SDL_CloseAudioDevice(device); });
-    if (opened.timedOut) g_openStalled = true;
+    g_abandonedOpen = opened.pending;
     return opened.device;
 }
 

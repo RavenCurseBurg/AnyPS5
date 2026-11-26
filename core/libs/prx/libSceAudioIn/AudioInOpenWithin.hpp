@@ -13,6 +13,7 @@ namespace audioin::detail {
 struct OpenWithinResult {
     std::uint32_t device = 0;
     bool timedOut = false;
+    std::weak_ptr<void> pending;
 };
 
 template <typename TOpen, typename TClose>
@@ -40,9 +41,9 @@ OpenWithinResult openWithin(std::chrono::milliseconds limit, TOpen open, TClose 
     std::unique_lock lock(state->mutex);
     if (!state->done.wait_for(lock, limit, [&state] { return state->finished; })) {
         state->abandoned = true;
-        return {0, true};
+        return {0, true, state};
     }
-    return {state->device, false};
+    return {state->device, false, {}};
 }
 
 }
