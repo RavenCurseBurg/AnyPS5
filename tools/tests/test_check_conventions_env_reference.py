@@ -226,6 +226,15 @@ class EnvReferenceDiffTests(unittest.TestCase):
         self.assertEqual(self.run_case(base, head), [("env-reference", DOC, 0,
                                                       "APS5_DOCUMENTED is still read by the code but this pull request removes its row")])
 
+    def test_tool_reads_require_rows_and_tool_fixtures_do_not(self):
+        base = {DOC: DOC_TEXT, "tools/reader.py": 'value = os.environ.get("APS5_DOCUMENTED")\n'}
+        head = {DOC: "", "tools/added.py": 'value = os.environ.get("APS5_NEW_READ")\n',
+                "tools/tests/test_reader.py": 'value = os.environ.get("APS5_GONE")\n'}
+        self.assertCountEqual(self.run_case(base, head), [
+            ("env-reference", "tools/added.py", 1, f"APS5_NEW_READ is read here but has no row in {DOC}"),
+            ("env-reference", DOC, 0, "APS5_DOCUMENTED is still read by the code but this pull request removes its row"),
+        ])
+
     def test_a_removed_row_is_kept_quiet_when_the_code_stops_reading_it_too(self):
         base = {
             DOC: DOC_TEXT,
@@ -276,6 +285,31 @@ class EnvReferenceDiffTests(unittest.TestCase):
         head = {DOC: "| `APS5_GONE` | presence |\n"}
         self.assertEqual(self.run_case(base, head, target), [("env-reference", DOC, 0,
                                                               "APS5_DOCUMENTED is still read by the code but this pull request removes its row")])
+
+    def test_brace_scopes_names_nested_namespaces(self):
+        scopes = check_conventions.brace_scopes("namespace A { namespace B { int x = 1; } }\n")
+        keys = {key for _, _, key in scopes}
+        self.assertIn(("namespace", "::A"), keys)
+        self.assertIn(("namespace", "::A::B"), keys)
+        for start, end, _ in scopes:
+            self.assertLess(start, end)
+
+    def test_scope_chain_lists_enclosing_scopes_innermost_first(self):
+        scopes = check_conventions.brace_scopes("namespace A { namespace B { int x = 1; } }\n")
+        chain = check_conventions.scope_chain(scopes, 35)
+        self.assertEqual(chain[0], ("namespace", "::A::B"))
+        self.assertIn(("namespace", "::A"), chain)
+        self.assertEqual(check_conventions.scope_chain(scopes, 0), [("namespace", "")])
+
+    def test_constant_value_uses_a_definition_visible_from_the_position(self):
+        scopes = check_conventions.brace_scopes("namespace A { namespace B { int x = 1; } }\n")
+        outer = ("namespace", "::A")
+        self.assertEqual(check_conventions.constant_value(([("K", 5, 0, outer)], scopes), "K", 35), 5)
+        self.assertEqual(check_conventions.constant_value(([("K", 5, 0, ("namespace", "::Z"))], scopes), "K", 35), 0)
+        self.assertEqual(check_conventions.constant_value(([("K", 5, 0, outer)], scopes), "Missing", 35), 0)
+
+    def test_library_names_the_prx_library_folder(self):
+        self.assertEqual(check_conventions.library('core/libs/prx/libX/Export.cpp'), 'libX')
 
 
 if __name__ == "__main__":
