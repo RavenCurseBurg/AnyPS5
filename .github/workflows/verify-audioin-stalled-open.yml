@@ -1,0 +1,39 @@
+name: AudioIn stalled open verification
+on:
+  push:
+    branches: [verify/audioin-stalled-open]
+permissions:
+  contents: read
+jobs:
+  ubuntu:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 4
+          persist-credentials: false
+      - run: git submodule update --init --recursive --depth 1 --jobs 6
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ninja-build libx11-dev libxext-dev libxrandr-dev libasound2-dev libpulse-dev
+      - name: Build and run guest AudioIn tests
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
+          cmake --build build --parallel 3 --target guest_audio_in_stalled_open_tests guest_audio_in_opening_slot_tests guest_audio_in_tests guest_audio_in_errors_tests guest_audio_in_ps4_open_tests guest_audio_in_vmic_miclevel_bounds_tests guest_audio_in_status_reroute_shared_bounds_tests guest_audio_in_device_id_open_bounds_tests
+          ctest --test-dir build -R '^guest_audio_in' --no-tests=error --output-on-failure
+      - name: Verify the reviewed head fails the retry assertion
+        run: |
+          src=core/libs/prx/libSceAudioIn/Export.cpp
+          git restore --source=30d6bc36e0a918db2b36acffab4650f974984a16 -- "$src"
+          cmake --build build --parallel 3 --target guest_audio_in_stalled_open_tests
+          if ctest --test-dir build -R '^guest_audio_in_stalled_open$' --no-tests=error --output-on-failure > "$RUNNER_TEMP/sticky.log" 2>&1; then
+            cat "$RUNNER_TEMP/sticky.log"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/sticky.log"
+          grep -F 'capture must recover after the abandoned device closes' "$RUNNER_TEMP/sticky.log"
+          git restore -- "$src"
+          cmake --build build --parallel 3 --target guest_audio_in_stalled_open_tests
+          ctest --test-dir build -R '^guest_audio_in_stalled_open$' --no-tests=error --output-on-failure --repeat until-fail:3
+          git diff --exit-code
