@@ -230,19 +230,20 @@ class CheckMainSyncHistoryTests(CheckMainSyncFixture):
 
 
 class CheckMainSyncPathTests(CheckMainSyncFixture):
-    def test_worktree_root_keeps_trailing_space_reported_by_git(self):
-        root = str(self.repo.path) + " "
-        original_git = check_main_sync.git
-
-        def git(repo, *args, **kwargs):
-            if args == ("rev-parse", "--show-toplevel"):
-                return types.SimpleNamespace(stdout=root + "\n")
-            self.assertEqual(repo, root)
-            return original_git(self.repo.path, *args, **kwargs)
-
-        with unittest.mock.patch.object(check_main_sync, "git", side_effect=git):
-            result = check_main_sync.report(self.repo.path, "main", "HEAD")
-        self.assertEqual((result["ahead"], result["behind"]), (0, 0))
+    def test_cli_checks_the_worktree_with_trailing_whitespace(self):
+        self.repo.write("other.txt", "advance main\n")
+        self.repo.commit("test: advance main")
+        with tempfile.TemporaryDirectory() as directory:
+            sibling = Path(directory) / "checkout"
+            self.repo.git("worktree", "add", "--quiet", "--detach", str(sibling), "main")
+            self.assertEqual(run_tool(sibling, "--strict").returncode, 0)
+            for suffix in (("\u00a0",) if os.name == "nt" else (" ", "\u00a0")):
+                with self.subTest(suffix=suffix):
+                    behind = sibling.with_name(sibling.name + suffix)
+                    self.repo.git("worktree", "add", "--quiet", "--detach", str(behind), "main~1")
+                    result = run_tool(behind, "--strict", "--json")
+                    self.assertEqual(result.returncode, 1, result.stderr)
+                    self.assertEqual(json.loads(result.stdout)["behind"], 1)
 
     def test_a_subdirectory_reports_the_same_conflicts_and_pull_requests(self):
         (self.repo.path / "docs").mkdir()
