@@ -1,4 +1,3 @@
-import argparse
 import gzip
 import json
 import subprocess
@@ -62,8 +61,70 @@ class DiffTests(unittest.TestCase):
         b = write_trace(self.tmp.name, "b.json.gz", b_items)
         return trace_diff.compare(a, b, top=10)
 
+    def test_independent_windows_match_the_digest_of_the_same_scene(self):
+        a = write_trace(self.tmp.name, "a.json.gz", events(10000))
+        b = Path(self.tmp.name) / "b.json"
+        shifted = [dict(event, ts=event["ts"] + 30000) for event in events(10000)]
+        shifted += [dict(shifted[-2], ts=0, args={"present": 599}), complete(1, "warmup", 0, 25000),
+                    complete(1, "crosses boundary", 25000, 10000), complete(1, "after the scene", 51000, 1000)]
+        b.write_text(json.dumps(shifted), encoding="utf-8")
+        done = subprocess.run([sys.executable, trace_diff.__file__, a, b, "--a-frames", "0:1", "--b-frames", "1:1", "--json"],
+                              capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        result = json.loads(done.stdout)
+        self.assertEqual(result["frames"], {"a": 1, "b": 1})
+        self.assertEqual(result["windows"], {"a": {"start": 0, "count": 1, "start_ms": 0.0, "end_ms": 20.0},
+                                              "b": {"start": 1, "count": 1, "start_ms": 30.0, "end_ms": 50.0}})
+        slices = {row["name"]: row for row in result["slices"]}
+        self.assertEqual(slices["Driver.Packet"]["delta_ms_per_frame"], 0.0)
+        self.assertEqual(slices["crosses boundary"]["b_ms_per_frame"], 5.0)
+        self.assertNotIn("warmup", slices)
+        self.assertNotIn("after the scene", slices)
+
+    def test_window_keeps_loss_markers_and_the_recorded_prefix(self):
+        a_items = events(10000)
+        a_items += [dict(a_items[-1], ts=40000, args={"present": 602}),
+                    {"name": "trace buffer full", "ph": "i", "ts": 21000, "tid": 1, "args": {"events_lost": 3}}]
+        a = write_trace(self.tmp.name, "a.json.gz", a_items)
+        b = write_trace(self.tmp.name, "b.json.gz", events(10000))
+        result = trace_diff.compare(a, b, a_frames=(0, 2))
+        self.assertEqual(result["frames"], {"a": 2, "b": 1})
+        self.assertIsNone(result["windows"]["b"])
+        self.assertEqual(result["event_loss"]["b"], [])
+        loss, = result["event_loss"]["a"]
+        self.assertEqual(loss["events_lost"], 3)
+        self.assertEqual(loss["frames_before_full"], 1)
+        self.assertEqual(loss["recorded_ms"], 20.0)
+        rows = {row["name"]: row for row in result["slices"]}
+        self.assertEqual(rows["Driver.Packet"]["a_ms_per_frame"], 5.0)
+        rendered = trace_diff.markdown(result)
+        self.assertIn("A window: 0:2 (0 to 40 ms in the capture)", rendered)
+        self.assertIn("B window: whole capture", rendered)
+        self.assertIn("3 events lost", rendered)
+
+    def test_window_requires_real_present_bounds(self):
+        a = write_trace(self.tmp.name, "a.json.gz", events(10000))
+        b = write_trace(self.tmp.name, "b.json.gz", events(10000))
+        for window, message in (("1:1", "complete frame count of 1"), ("0:0", "positive count"), ("1", "START:COUNT")):
+            with self.subTest(window=window):
+                done = subprocess.run([sys.executable, trace_diff.__file__, a, b, "--a-frames", window],
+                                      capture_output=True, text=True)
+                self.assertEqual(done.returncode, 2)
+                self.assertIn(message, done.stderr)
+                self.assertIn("error:", done.stderr)
+                self.assertNotIn("Traceback", done.stderr)
+                self.assertEqual(done.stdout, "")
+
+    def test_windowed_comparison_needs_a_complete_frame_in_both_captures(self):
+        a = write_trace(self.tmp.name, "a.json.gz", events(10000))
+        b = write_trace(self.tmp.name, "b.json.gz", events(10000)[:-1])
+        with self.assertRaisesRegex(ValueError, "needs at least one complete frame in each capture"):
+            trace_diff.compare(a, b, a_frames=(0, 1))
+
     def test_identical_traces_have_zero_deltas(self):
         result = self.diff(events(10000), events(10000))
+        self.assertEqual(set(result), {"a", "b", "frames", "threads", "slices"})
+        self.assertTrue(trace_diff.markdown(result).startswith("Frames: A 1, B 1\n\n| thread"))
         for row in result["threads"]:
             self.assertAlmostEqual(row["busy_delta_ms_per_frame"], 0.0)
             self.assertAlmostEqual(row["wait_delta_ms_per_frame"], 0.0)
@@ -83,6 +144,18 @@ class DiffTests(unittest.TestCase):
         self.assertGreater(gpu["b_busy_ms_per_frame"], 0.0)
         self.assertEqual(gpu["busy_delta_ms_per_frame"], gpu["b_busy_ms_per_frame"])
 
+    def test_threads_with_the_same_name_contribute_to_one_total(self):
+        baseline = events(10000)
+        candidate = baseline + [
+            {"name": "thread_name", "ph": "M", "ts": 0, "pid": 7, "tid": 3,
+             "args": {"name": "queue worker 0x0"}},
+            complete(3, "Driver.Packet", 0, 4000),
+        ]
+        result = self.diff(baseline, candidate)
+        worker = next(row for row in result["threads"] if row["thread"] == "queue worker 0x0")
+        self.assertEqual(worker["a_busy_ms_per_frame"], 10.0)
+        self.assertEqual(worker["b_busy_ms_per_frame"], 14.0)
+
     def test_a_slice_below_the_top_cut_on_one_side_keeps_its_real_delta(self):
         result = self.diff(stepped({}), stepped({9: 4.0, 10: 9.8}))
         rows = {row["name"]: row for row in result["slices"]}
@@ -92,6 +165,17 @@ class DiffTests(unittest.TestCase):
         self.assertAlmostEqual(rows["S09"]["a_ms_per_frame"], 5.5)
         self.assertAlmostEqual(rows["S09"]["b_ms_per_frame"], 4.0)
         self.assertAlmostEqual(rows["S09"]["delta_ms_per_frame"], -1.5)
+
+    def test_cli_default_markdown_reports_frames_and_signed_deltas(self):
+        a = write_trace(self.tmp.name, "a.json.gz", events(8000))
+        later = events(4000)
+        later.append({"name": "present", "ph": "i", "ts": 40000, "pid": 7, "tid": 2, "s": "g", "args": {"present": 602}})
+        b = write_trace(self.tmp.name, "b.json.gz", later)
+        report = subprocess.check_output([sys.executable, trace_diff.__file__, str(a), str(b)], text=True)
+        lines = report.splitlines()
+        self.assertEqual(lines[0], "Frames: A 1, B 2")
+        self.assertIn("| queue worker 0x0 | 8.000 | 2.000 | -6.000 | 0.000 | 0.000 | +0.000 |", lines)
+        self.assertIn("| Driver.Packet | 8.000 | 2.000 | -6.000 |", lines)
 
     def test_the_cli_writes_json_and_rejects_a_missing_file(self):
         a = write_trace(self.tmp.name, "a.json.gz", events(10000))
@@ -103,39 +187,6 @@ class DiffTests(unittest.TestCase):
         missing = subprocess.run([sys.executable, str(tool), str(a), str(Path(self.tmp.name) / "none.json.gz")], capture_output=True, text=True)
         self.assertEqual(missing.returncode, 2)
         self.assertIn("FAIL", missing.stderr)
-
-
-class MarkdownAndIntegerTests(unittest.TestCase):
-    def result(self):
-        return {
-            "frames": {"a": 3, "b": 4},
-            "threads": [{"thread": "presenter", "a_busy_ms_per_frame": 1.5, "b_busy_ms_per_frame": 0.25,
-                         "busy_delta_ms_per_frame": -1.25, "a_wait_ms_per_frame": 0.0,
-                         "b_wait_ms_per_frame": 2.0, "wait_delta_ms_per_frame": 2.0}],
-            "slices": [{"name": "Driver.Present", "a_ms_per_frame": 0.5, "b_ms_per_frame": 0.75, "delta_ms_per_frame": 0.25}],
-        }
-
-    def test_markdown_renders_frames_threads_and_slices(self):
-        text = trace_diff.markdown(self.result())
-        self.assertEqual(text.splitlines()[0], "Frames: A 3, B 4")
-        self.assertIn("| presenter | 1.500 | 0.250 | -1.250 | 0.000 | 2.000 | +2.000 |", text.splitlines())
-        self.assertIn("| Driver.Present | 0.500 | 0.750 | +0.250 |", text.splitlines())
-        self.assertTrue(text.endswith("\n"))
-
-    def test_markdown_header_rows_match_the_column_count(self):
-        lines = trace_diff.markdown(self.result()).splitlines()
-        self.assertEqual(lines[2].count("|"), lines[3].count("|"))
-        self.assertEqual(lines[6].count("|"), lines[7].count("|"))
-
-    def test_nonnegative_integer_accepts_zero_and_positive_values(self):
-        self.assertEqual(trace_diff.nonnegative_integer("0"), 0)
-        self.assertEqual(trace_diff.nonnegative_integer("42"), 42)
-
-    def test_nonnegative_integer_rejects_negative_and_non_numbers(self):
-        for value in ("-1", "abc", "1.5", ""):
-            with self.subTest(value=value):
-                with self.assertRaises(argparse.ArgumentTypeError):
-                    trace_diff.nonnegative_integer(value)
 
 
 if __name__ == "__main__":
