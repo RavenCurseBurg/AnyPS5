@@ -26,6 +26,7 @@ constexpr int AnyFunction = 0xfff;
 constexpr int MallocFailure = 65;
 constexpr int IllegalCharacters = 124;
 constexpr int InvalidUtf8String = 134;
+constexpr int DepthExceeded = 174;
 constexpr int IllegalBitStringFormat = 175;
 constexpr int IllegalBoolean = 176;
 constexpr int IllegalFormat = 177;
@@ -48,6 +49,7 @@ constexpr int InvalidNullName = 108;
 constexpr int InvalidNullValue = 109;
 constexpr int ExtensionNameError = 115;
 constexpr int ExtensionValueError = 116;
+constexpr int ExtensionSettingNotSupported = 103;
 constexpr int IllegalHexDigit = 113;
 constexpr int InvalidBooleanString = 104;
 constexpr int InvalidExtensionString = 105;
@@ -71,6 +73,8 @@ constexpr unsigned char Utf8StringTag = 0x0c;
 constexpr unsigned char Ia5StringTag = 0x16;
 constexpr unsigned char SequenceTag = 0x30;
 constexpr unsigned char SetTag = 0x31;
+
+constexpr std::size_t MaxWraps = 20;
 
 void PutError(int reason) {
     LibreSslPutError_nid_no_patch(X509V3Library, AnyFunction, reason);
@@ -247,6 +251,7 @@ const LibreSslAsn1Object* ObjectByName(std::string_view text) {
     if (text.empty()) return nullptr;
     for (int nid = 0; nid < LibreSslObjectCount; ++nid) {
         const LibreSslAsn1Object& object = LibreSslObjects_nid_no_patch[nid];
+        if (object.nid == 0) continue;
         if (object.shortName && text == object.shortName) return &object;
         if (object.longName && text == object.longName) return &object;
     }
@@ -361,21 +366,24 @@ bool ParseBitList(std::string_view text, std::vector<unsigned char>& bytes) {
         bool overflow = false;
         for (const char digit : element) {
             if (digit < '0' || digit > '9') return false;
+            if (overflow) continue;
             const unsigned long long value = static_cast<unsigned long long>(digit - '0');
-            if (bit > (std::numeric_limits<unsigned long long>::max() - value) / 10) overflow = true;
+            if (bit > (std::numeric_limits<unsigned long long>::max() - value) / 10) {
+                overflow = true;
+                continue;
+            }
             bit = bit * 10 + value;
         }
-        const unsigned long long converted =
-            overflow ? std::numeric_limits<unsigned long long>::max() : negative ? 0ULL - bit : bit;
-        if (static_cast<std::int64_t>(converted) < 0) {
+        constexpr unsigned long long signedMax = static_cast<unsigned long long>(std::numeric_limits<std::int64_t>::max());
+        const unsigned long long converted = negative ? 0ULL - bit : bit;
+        if (overflow || converted > signedMax) {
             PutAsn1Error(InvalidNumber);
             return false;
         }
-        if (negative && bit != 0) return false;
-        if (bit > static_cast<unsigned long long>(std::numeric_limits<int>::max())) NotImplemented_nid_no_patch(__func__);
-        const std::size_t index = static_cast<std::size_t>(bit) / 8;
+        if (converted > static_cast<unsigned long long>(std::numeric_limits<int>::max())) NotImplemented_nid_no_patch(__func__);
+        const std::size_t index = static_cast<std::size_t>(converted) / 8;
         if (bytes.size() <= index) bytes.resize(index + 1, 0);
-        bytes[index] |= static_cast<unsigned char>(0x80 >> (static_cast<std::size_t>(bit) % 8));
+        bytes[index] |= static_cast<unsigned char>(0x80 >> (static_cast<std::size_t>(converted) % 8));
         if (comma == std::string_view::npos) return true;
         start = comma + 1;
     }
@@ -417,11 +425,11 @@ struct ListEntry {
 
 bool StripSpaces(std::string_view text, std::string& result) {
     std::size_t begin = 0;
-    std::size_t end = text.size();
-    while (begin < end && IsSpace(text[begin])) ++begin;
-    while (end > begin && IsSpace(text[end - 1])) --end;
-    if (begin == end) return false;
-    result.assign(text.substr(begin, end - begin));
+    while (begin < text.size() && IsSpace(text[begin])) ++begin;
+    if (begin == text.size()) return false;
+    std::size_t last = text.size() - 1;
+    while (last != begin && IsSpace(text[last])) --last;
+    result.assign(text.substr(begin, last == begin ? std::string_view::npos : last + 1 - begin));
     return true;
 }
 
@@ -557,10 +565,16 @@ enum class SimpleType {
     Set,
 };
 
+struct Wrap {
+    unsigned char tag;
+    bool pad;
+};
+
 struct Asn1Value {
     SimpleType type = SimpleType::Null;
     Format format = Format::Ascii;
     std::string text;
+    std::vector<Wrap> wraps;
 };
 
 bool LookupSimpleType(std::string_view name, SimpleType& type) {
@@ -586,6 +600,25 @@ bool LookupSimpleType(std::string_view name, SimpleType& type) {
         return false;
     }
     return true;
+}
+
+std::optional<Wrap> LookupWrap(std::string_view name) {
+    if (name == "SEQWRAP") return Wrap{SequenceTag, false};
+    if (name == "SETWRAP") return Wrap{SetTag, false};
+    if (name == "BITWRAP") return Wrap{BitStringTag, true};
+    if (name == "OCTWRAP") return Wrap{OctetStringTag, false};
+    return std::nullopt;
+}
+
+void ApplyWraps(const std::vector<Wrap>& wraps, std::vector<unsigned char>& der) {
+    for (auto wrap = wraps.rbegin(); wrap != wraps.rend(); ++wrap) {
+        std::vector<unsigned char> content;
+        content.reserve(der.size() + 1);
+        if (wrap->pad) content.push_back(0);
+        content.insert(content.end(), der.begin(), der.end());
+        der.clear();
+        AppendTlv(der, wrap->tag, content);
+    }
 }
 
 bool IsUnsupportedTag(std::string_view name) {
@@ -649,10 +682,15 @@ bool ParseAsn1(std::string_view text, LibreSsl3X509V3Context* ctx, Asn1Value& re
                 PutAsn1Error(UnknownFormat);
                 return false;
             }
-        } else if (name == "IMP" || name == "IMPLICIT" || name == "EXP" || name == "EXPLICIT" ||
-                   name == "SEQWRAP" || name == "SETWRAP" || name == "BITWRAP" || name == "OCTWRAP") {
+        } else if (name == "IMP" || name == "IMPLICIT" || name == "EXP" || name == "EXPLICIT") {
             if (colon == std::string_view::npos) return false;
             NotImplemented_nid_no_patch(__func__);
+        } else if (const std::optional<Wrap> wrap = LookupWrap(name)) {
+            if (result.wraps.size() == MaxWraps) {
+                PutAsn1Error(DepthExceeded);
+                return false;
+            }
+            result.wraps.push_back(*wrap);
         } else if (IsUnsupportedTag(name)) {
             if (missingValue) {
                 PutAsn1Error(MissingValue);
@@ -925,8 +963,8 @@ LibreSsl3X509Extension* BuildExtension(int nid, bool critical, const std::vector
 bool IsStandardExtension(int nid) {
     constexpr std::array<int, 42> Nids = {
         71, 72, 73, 74, 75, 76, 77, 78, 82, 83, 84, 85, 86, 87, 88, 89, 90, 103, 126, 140, 141,
-        142, 143, 177, 290, 291, 366, 367, 368, 369, 370, 371, 398, 401, 430, 663, 666, 747, 748,
-        770, 771, 857,
+        142, 177, 290, 291, 366, 367, 368, 370, 371, 398, 401, 430, 666, 747, 748, 770, 771, 857,
+        1018, 1019, 1021,
     };
     for (const int candidate : Nids) {
         if (candidate == nid) return true;
@@ -953,6 +991,13 @@ LibreSsl3X509Extension* PlainExtension(void* conf, int nid, bool critical, std::
         break;
     case 126:
         if (!EncodeExtendedKeyUsage(conf, text, der)) return nullptr;
+        break;
+    case 1018:
+    case 1021:
+        PutError(ExtensionSettingNotSupported);
+        return nullptr;
+    case 1019:
+        der = {NullTag, 0x00};
         break;
     default:
         NotImplemented_nid_no_patch(__func__);
@@ -987,6 +1032,7 @@ extern "C" LibreSsl3X509Extension* APS5_VABI X509V3_EXT_conf_nid_nid_postfix(voi
             PutError(ExtensionValueError);
             return nullptr;
         }
+        ApplyWraps(parsed.wraps, der);
         if (!NidObject(ext_nid)) {
             PutError(ExtensionNameError);
             return nullptr;
