@@ -24,6 +24,14 @@ if(BUILD_TESTING)
     add_test(NAME guest_audio_in_capture COMMAND guest_audio_in_tests capture)
     add_test(NAME guest_audio_in_no_device COMMAND guest_audio_in_tests none)
     add_test(NAME guest_audio_in_open_within COMMAND guest_audio_in_tests open-within)
+    add_test_executable(guest_audio_in_stalled_open_tests ${LIBS_INCLUDE_DIR}/tests/GuestAudioInStalledOpen.cpp Export.cpp)
+    target_include_directories(guest_audio_in_stalled_open_tests PRIVATE ${LIBS_INCLUDE_DIR} ${ANYPS5_SDL2_INCLUDE_DIR})
+    target_compile_definitions(guest_audio_in_stalled_open_tests PRIVATE SDL_MAIN_HANDLED
+        SDL_OpenAudioDevice=TestOpenAudioDevice SDL_CloseAudioDevice=TestCloseAudioDevice)
+    target_link_libraries(guest_audio_in_stalled_open_tests PRIVATE SDL2-static libScePad libkernel_sys libc)
+    configure_windows_unwind(guest_audio_in_stalled_open_tests)
+    add_test(NAME guest_audio_in_stalled_open COMMAND guest_audio_in_stalled_open_tests)
+    set_tests_properties(guest_audio_in_stalled_open PROPERTIES TIMEOUT 20 ENVIRONMENT "SDL_AUDIODRIVER=dummy;ANYPS5_AUDIO_IN_DEVICE=")
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         add_test_executable(guest_audio_in_opening_slot_tests ${LIBS_INCLUDE_DIR}/tests/GuestAudioInOpeningSlot.cpp)
         target_include_directories(guest_audio_in_opening_slot_tests PRIVATE ${LIBS_INCLUDE_DIR})
@@ -33,7 +41,7 @@ if(BUILD_TESTING)
     endif()
     set_tests_properties(guest_audio_in_open_within PROPERTIES TIMEOUT 20)
     if(WIN32)
-        set_tests_properties(guest_audio_in_capture guest_audio_in_no_device guest_audio_in_open_within PROPERTIES ENVIRONMENT_MODIFICATION
+        set_tests_properties(guest_audio_in_capture guest_audio_in_no_device guest_audio_in_open_within guest_audio_in_stalled_open PROPERTIES ENVIRONMENT_MODIFICATION
             "PATH=path_list_prepend:$<TARGET_FILE_DIR:libSceAudioIn>")
     endif()
 
