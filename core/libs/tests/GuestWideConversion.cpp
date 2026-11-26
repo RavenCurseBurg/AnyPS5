@@ -1,3 +1,4 @@
+#include <array>
 #include "prx/libc/include/Api.hpp"
 #include "prx/libc/include/general/VabiMacros.hpp"
 #include <cerrno>
@@ -143,8 +144,8 @@ static void CheckClassification() {
     Require(_Iswctype_nid_postfix(u'a', 6) != 0 && _Iswctype_nid_postfix(u'a', 10) == 0, "_Iswctype lower and upper");
     Require(_Iswctype_nid_postfix(0x7f, 3) != 0 && _Iswctype_nid_postfix(u'!', 8) != 0, "_Iswctype cntrl and punct");
     Require(_Iswctype_nid_postfix(0xe9, 2) == 0 && _Iswctype_nid_postfix(0x3042, 1) == 0, "_Iswctype C locale has no non-ASCII letters");
-    Require(Throws([] { _Iswctype_nid_postfix(u'a', 0); }), "_Iswctype throws for class 0");
-    Require(Throws([] { _Iswctype_nid_postfix(u'a', 13); }), "_Iswctype throws for class 13");
+    Require(_Iswctype_nid_postfix(u'a', 0) == 0, "_Iswctype is false for class 0");
+    Require(_Iswctype_nid_postfix(u'a', 13) == 0, "_Iswctype is false for class 13");
     Require(Throws([] { _Iswctype_nid_postfix(u'a', 0x100); }), "_Iswctype throws for a rune mask");
 }
 
@@ -201,6 +202,13 @@ static void CheckScan() {
     Require(swscanf_s_nid_postfix(u"2.25", u"%Lf", &extended) == 1 && extended == 2.25L, "%Lf");
     float single = 0;
     Require(swscanf_s_nid_postfix(u"-inf", u"%f", &single) == 1 && single == -std::numeric_limits<float>::infinity(), "%f infinity");
+    for (const char16_t* format : {u"%llf", u"%jf", u"%zf", u"%tf", u"%lla", u"%hf"}) {
+        std::array<unsigned char, 16> stored;
+        stored.fill(0x55);
+        Require(swscanf_s_nid_postfix(u"1.5", format, stored.data()) == 1 && stored[4] == 0x55, "a floating length other than l or L stores a float");
+        std::memcpy(&single, stored.data(), sizeof(single));
+        Require(single == 1.5f, "a floating length other than l or L stores the value");
+    }
 
     Require(swscanf_s_nid_postfix(u"a", u"b%d", &first) == 0, "literal mismatch is a matching failure");
     Require(swscanf_s_nid_postfix(u"", u"x") == 0, "literal at end of input returns zero");
@@ -344,6 +352,15 @@ static void CheckUnsizedScan() {
     char unset[4] = {'!', '!', '!', '!'};
     Require(swscanf_nid_postfix(u"ab", u"%[^]", unset) == 0 && swscanf_nid_postfix(u"ab", u"%[ab", unset) == 0, "swscanf unterminated set");
     Require(swscanf_nid_postfix(u"", u"%[^]", unset) == 0 && unset[0] == '!', "swscanf unterminated set at end of input");
+    first = -1;
+    Require(swscanf_nid_postfix(u"50%", u"%d%", &first) == 1 && first == 50, "swscanf stops at a format that ends after a percent sign");
+    first = -1;
+    Require(swscanf_nid_postfix(u"7 8", u"%d %5", &first) == 1 && first == 7, "swscanf stops at a format that ends after a width");
+    Require(swscanf_nid_postfix(u"ab", u"%") == 0 && swscanf_nid_postfix(u"ab", u"%l") == 0 && swscanf_nid_postfix(u"ab", u"%*") == 0 &&
+        swscanf_nid_postfix(u"ab", u"%*5ll") == 0, "swscanf incomplete conversion is a matching failure");
+    Require(swscanf_nid_postfix(u"", u"%") == 0, "swscanf incomplete conversion at end of input");
+    first = -1;
+    Require(swscanf_s_nid_postfix(u"50%", u"%d%", &first) == 1 && first == 50, "swscanf_s stops at a format that ends after a percent sign");
     Require(swscanf_nid_postfix(u"Ā", u"%s", narrow) == 1 && std::strcmp(narrow, "\xc4\x80") == 0, "swscanf narrow %s stores UTF-8");
 }
 

@@ -76,6 +76,20 @@ void TestCallsWithoutReprojectionSession() {
         Require(sceHmd2ReprojectionSetRenderConfig(flag, 0, 0) == Hmd2::ReprojectionNotInitialized, "render config without a reprojection session");
         Require(sceHmd2ReprojectionSetRenderConfig(flag, 1, 1) == Hmd2::ReprojectionNotInitialized, "render config with nonzero reserved arguments without a reprojection session");
     }
+    for (const std::uint64_t frameId : frameIds) {
+        Require(sceHmd2ReprojectionBeginFrame(frameId) == Hmd2::ReprojectionNotInitialized, "begin frame without a reprojection session");
+    }
+    Require(sceHmd2ReprojectionBeginFrame(0x7fffffffffffffffull) == Hmd2::ReprojectionNotInitialized, "begin frame with the largest signed frame id without a reprojection session");
+    Hmd2::MirroringOption option;
+    std::memset(&option, 0xaa, sizeof(option));
+    const Hmd2::MirroringOption optionBefore = option;
+    for (int call = 0; call < 2; ++call) {
+        Require(sceHmd2ReprojectionDisableMirroring() == Hmd2::ReprojectionNotInitialized, "disabling mirroring without a reprojection session");
+        Require(sceHmd2ReprojectionDisableVrMode() == Hmd2::ReprojectionNotInitialized, "disabling VR mode without a reprojection session");
+        Require(sceHmd2ReprojectionSetMirroringOption(nullptr) == Hmd2::ReprojectionNotInitialized, "mirroring option with a null option without a reprojection session");
+        Require(sceHmd2ReprojectionSetMirroringOption(&option) == Hmd2::ReprojectionNotInitialized, "mirroring option without a reprojection session");
+    }
+    Require(std::memcmp(&option, &optionBefore, sizeof(option)) == 0, "mirroring option was written without a reprojection session");
 }
 
 void InstallProcessParameters() {
@@ -137,18 +151,30 @@ void TestBeforeInitialize() {
         std::uint8_t out[64];
         std::uint64_t words[2];
         Require(Hmd2WriteStateTwo(nullptr) == Hmd2::ParameterNull, "Hmd2WriteStateTwo null before initialization");
+        errno = 71;
+        Require(Hmd2WriteStateTwo(reinterpret_cast<void*>(0x10)) == Hmd2::ParameterNull && errno == 71, "Hmd2WriteStateTwo unwritable pointer");
         std::memset(out, 0xaa, sizeof out);
         Require(Hmd2WriteStateTwo(out) == 0 && out[0] == 2 && out[1] == 0 && out[4] == 0 && out[5] == 0xaa, "Hmd2WriteStateTwo bytes before initialization");
         Require(Hmd2WriteSize0x2000Align0x100(nullptr, words) == Hmd2::ParameterNull && Hmd2WriteSize0x2000Align0x100(words, nullptr) == Hmd2::ParameterNull, "Hmd2WriteSize0x2000Align0x100 null before initialization");
+        errno = 71;
+        Require(Hmd2WriteSize0x2000Align0x100(reinterpret_cast<std::uint64_t*>(0x10), words) == Hmd2::ParameterNull && errno == 71, "Hmd2WriteSize0x2000Align0x100 unwritable first pointer");
+        errno = 71;
+        Require(Hmd2WriteSize0x2000Align0x100(words, reinterpret_cast<std::uint64_t*>(0x10)) == Hmd2::ParameterNull && errno == 71, "Hmd2WriteSize0x2000Align0x100 unwritable second pointer");
         words[0] = words[1] = ~0ull;
         Require(Hmd2WriteSize0x2000Align0x100(words, words + 1) == 0 && words[0] == 0x2000 && words[1] == 0x100, "Hmd2WriteSize0x2000Align0x100 values before initialization");
         Require(Hmd2WriteFourConstants(nullptr) == Hmd2::ParameterNull, "Hmd2WriteFourConstants null before initialization");
+        errno = 71;
+        Require(Hmd2WriteFourConstants(reinterpret_cast<void*>(0x10)) == Hmd2::ParameterNull && errno == 71, "Hmd2WriteFourConstants unwritable pointer");
         std::memset(out, 0xaa, sizeof out);
         Require(Hmd2WriteFourConstants(out) == 0 && out[0] == 0xe1 && out[15] == 0x3c && out[16] == 0xaa, "Hmd2WriteFourConstants bytes before initialization");
         Require(Hmd2WriteSixHalvesThenInvalidHandle(0, nullptr) == Hmd2::ParameterNull, "Hmd2WriteSixHalvesThenInvalidHandle null before initialization");
+        errno = 71;
+        Require(Hmd2WriteSixHalvesThenInvalidHandle(0, reinterpret_cast<void*>(0x10)) == Hmd2::ParameterNull && errno == 71, "Hmd2WriteSixHalvesThenInvalidHandle unwritable pointer");
         std::memset(out, 0xaa, sizeof out);
         Require(Hmd2WriteSixHalvesThenInvalidHandle(0, out) == Hmd2::InvalidHandle && out[7] == 0x3f && out[20] == 0x00 && out[23] == 0x3f && out[24] == 0xaa, "Hmd2WriteSixHalvesThenInvalidHandle bytes before initialization");
         Require(Hmd2WriteTwelveHalvesThenInvalidHandle(0, nullptr) == Hmd2::ParameterNull, "Hmd2WriteTwelveHalvesThenInvalidHandle null before initialization");
+        errno = 71;
+        Require(Hmd2WriteTwelveHalvesThenInvalidHandle(0, reinterpret_cast<void*>(0x10)) == Hmd2::ParameterNull && errno == 71, "Hmd2WriteTwelveHalvesThenInvalidHandle unwritable pointer");
         std::memset(out, 0xaa, sizeof out);
         Require(Hmd2WriteTwelveHalvesThenInvalidHandle(0, out) == Hmd2::InvalidHandle && out[7] == 0x3f && out[31] == 0x3f && out[47] == 0x00 && out[48] == 0xaa, "Hmd2WriteTwelveHalvesThenInvalidHandle bytes before initialization");
         Require(Hmd2SlotUpTo3CheckSecondThirdThenZero(9, nullptr, out) == Hmd2::ParameterNull && Hmd2SlotUpTo3CheckSecondThirdThenZero(0, out, nullptr) == Hmd2::ParameterNull, "Hmd2SlotUpTo3CheckSecondThirdThenZero null before initialization");
@@ -367,6 +393,11 @@ void TestGatedCallsInsideReprojectionSession() {
     Require(!AnswersNoSession([&] { return sceHmd2ReprojectionGetPredictedDisplayTime(1, &time); }), "predicted display time inside a reprojection session answered as without one");
     Require(!AnswersNoSession([&] { return sceHmd2ReprojectionSetRenderConfig(1, 0, 0); }), "render config inside a reprojection session answered as without one");
     Require(!AnswersNoSession([&] { return sceHmd2ReprojectionSetRenderConfig(1ull << 32, 0, 0); }), "render config with the second accepted bit inside a reprojection session answered as without one");
+    const Hmd2::MirroringOption option{};
+    Require(!AnswersNoSession([] { return sceHmd2ReprojectionBeginFrame(1); }), "begin frame inside a reprojection session answered as without one");
+    Require(!AnswersNoSession([] { return sceHmd2ReprojectionDisableMirroring(); }), "disabling mirroring inside a reprojection session answered as without one");
+    Require(!AnswersNoSession([] { return sceHmd2ReprojectionDisableVrMode(); }), "disabling VR mode inside a reprojection session answered as without one");
+    Require(!AnswersNoSession([&] { return sceHmd2ReprojectionSetMirroringOption(&option); }), "mirroring option inside a reprojection session answered as without one");
     for (const std::uint64_t frameId : {0ull, 1ull, 0x123456789ull}) {
         Require(sceHmd2ReprojectionGetPredictedDisplayTime(frameId, nullptr) == Hmd2::ParameterNull, "predicted display time into a null output inside a reprojection session");
     }
@@ -435,6 +466,8 @@ void TestReprojection() {
     std::array<std::uint8_t, 0x68> status{};
     status.fill(0xaa);
     Require(sceHmd2ReprojectionGetStatus(nullptr) == Hmd2::ParameterNull, "status into a null output inside a reprojection session");
+    errno = EBUSY;
+    Require(sceHmd2ReprojectionGetStatus(reinterpret_cast<Hmd2::ReprojectionStatus*>(std::uintptr_t{0x10})) == Hmd2::ParameterNull && errno == EBUSY, "status into unwritable output inside a reprojection session");
     Require(sceHmd2ReprojectionGetStatus(reinterpret_cast<Hmd2::ReprojectionStatus*>(status.data())) == 0, "status inside a reprojection session");
     std::array<std::uint64_t, 4> timestamps{};
     std::memcpy(timestamps.data(), status.data() + 0x28, sizeof(timestamps));

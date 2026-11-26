@@ -8,11 +8,13 @@
 #include <istream>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
-#include "SDL_scancode.h"
+#include "SDL_gamecontroller.h"
 #include "SDL_mouse.h"
+#include "SDL_scancode.h"
 
 #include "PadInputTypes.hpp"
 
@@ -43,10 +45,13 @@ struct InputSettings {
 struct InputConfiguration {
     std::vector<InputBinding> bindings;
     InputSettings settings;
+    std::array<std::optional<PadButton>, SDL_CONTROLLER_BUTTON_MAX> controllerButtons{};
+    std::uint32_t toggleButtons = 0;
 };
 
 inline constexpr std::array InputMapping{
     InputBinding{SDL_SCANCODE_F11, MouseButton::None, InputControl::ToggleFullscreen},
+    InputBinding{SDL_SCANCODE_F2, MouseButton::None, InputControl::ToggleBorderless},
     InputBinding{SDL_SCANCODE_F10, MouseButton::None, InputControl::TogglePerformanceOverlay},
     InputBinding{SDL_SCANCODE_F12, MouseButton::None, InputControl::Screenshot},
     InputBinding{SDL_SCANCODE_F9, MouseButton::None, InputControl::ShowPadStatus},

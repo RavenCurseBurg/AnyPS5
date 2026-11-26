@@ -30,6 +30,8 @@ namespace AvPlayer {
 
 namespace {
 
+std::atomic<void (*)(std::uint64_t, std::uint64_t)> bufferWaitObserver = nullptr;
+
 constexpr std::uint32_t VideoPitchAlignment = 256;
 constexpr std::uint32_t VideoHeightAlignment = 16;
 constexpr std::uint32_t VideoBufferAlignment = 0x100;
@@ -89,6 +91,8 @@ public:
     void SetOverrideForTest(double milliseconds) {
         overrideTime = milliseconds;
     }
+
+    bool Running() const { return running && !paused; }
 
     void Rebase(double milliseconds) {
         base = milliseconds;
@@ -279,7 +283,7 @@ public:
             decoder.switchTo = next.stream;
             if (!reposition) reposition = Reposition{clockMillis(), false};
         }
-        condition.notify_all();
+        condition.NotifyAll();
         return true;
     }
 
@@ -308,6 +312,7 @@ public:
             minEpoch = 1;
             clockEpoch = 0;
             loopEpochs.clear();
+            loopWarning.reset();
             audioDriving = false;
             presented = false;
             lastPresented = 0;
@@ -337,7 +342,7 @@ public:
             std::lock_guard lock(mutex);
             stopping = true;
         }
-        condition.notify_all();
+        condition.NotifyAll();
         if (remote) remote->Stop();
         demuxer.join();
         for (auto* decoder : {&video, &audio}) {
@@ -359,9 +364,12 @@ public:
     }
 
     void Resume() override {
-        std::lock_guard lock(mutex);
-        paused = false;
-        presentationClock.Resume();
+        {
+            std::lock_guard lock(mutex);
+            paused = false;
+            presentationClock.Resume();
+        }
+        condition.NotifyAll();
     }
 
     void Jump(std::uint64_t milliseconds) override {
@@ -373,7 +381,7 @@ public:
             }
             reposition = Reposition{milliseconds, true};
         }
-        condition.notify_all();
+        condition.NotifyAll();
     }
 
     void SetLooping(bool enabled) override { looping = enabled; }
@@ -387,17 +395,23 @@ public:
             if (percent != NormalSpeed) audioDriving = false;
             if (forwardAgain && started && !reposition) reposition = Reposition{clockMillis(), false};
         }
-        condition.notify_all();
+        condition.NotifyAll();
     }
 
-    void SetSyncMode(std::uint32_t mode) override { syncMode = mode; }
+    void SetSyncMode(std::uint32_t mode) override {
+        {
+            std::lock_guard lock(mutex);
+            syncMode = mode;
+        }
+        condition.NotifyAll();
+    }
 
     void SetDemuxVideoBufferSize(std::uint32_t bytes) override {
         {
             std::lock_guard lock(mutex);
             demuxVideoBytes = bytes;
         }
-        condition.notify_all();
+        condition.NotifyAll();
     }
 
     void SetClockTimeForTest(double milliseconds) override {
@@ -408,7 +422,7 @@ public:
     void SetHoldAudioEofForTest(bool hold) override {
         std::lock_guard lock(mutex);
         holdAudioEof = hold;
-        condition.notify_all();
+        condition.NotifyAll();
     }
 
     bool AudioEofHeldForTest() override {
@@ -439,7 +453,7 @@ public:
             std::lock_guard lock(mutex);
             taken = takeVideo(info);
         }
-        condition.notify_all();
+        condition.NotifyAll();
         return taken;
     }
 
@@ -450,7 +464,7 @@ public:
             std::lock_guard lock(mutex);
             taken = takeAudio(extended);
         }
-        condition.notify_all();
+        condition.NotifyAll();
         if (!taken) return false;
         info = {};
         info.p_data = static_cast<std::uint8_t*>(extended.p_data);
@@ -502,6 +516,22 @@ private:
         return duration != 0 ? std::min(milliseconds, duration) : milliseconds;
     }
 
+    bool followsClockLocked() const {
+        return started && !paused && presented && speed == NormalSpeed && syncMode == SyncModeDefault && presentationClock.Running();
+    }
+
+    bool lateForClockLocked(const Decoder& decoder, std::uint64_t timestamp, std::uint64_t epoch) const {
+        if (!followsClockLocked() || epoch != clockEpoch || decoder.frames.empty() || decoder.frames.back().epoch != epoch) return false;
+        return static_cast<double>(timestamp + frameDuration()) < presentationClock.Now();
+    }
+
+    void recycleLateLocked(Decoder& decoder) {
+        if (!followsClockLocked()) return;
+        const auto now = presentationClock.Now();
+        auto& frames = decoder.frames;
+        while (frames.size() > 1 && frames.front().epoch == clockEpoch && frames[1].epoch == clockEpoch && static_cast<double>(frames[1].info.timestamp) <= now) recycleFront(decoder);
+    }
+
     bool audioExhausted() const {
         return audioHasTimestamp && demuxEnded && !reposition && audio.ended && audio.packets.empty() && audio.frames.empty();
     }
@@ -525,8 +555,8 @@ private:
         std::unique_lock lock(mutex);
         if (!holdAudioEof || stopping) return;
         audioEofHeld = true;
-        condition.notify_all();
-        condition.wait(lock, [&] { return stopping || !holdAudioEof; });
+        condition.NotifyAll();
+        condition.Wait(lock, [&] { return stopping || !holdAudioEof; });
         audioEofHeld = false;
     }
 
@@ -543,6 +573,7 @@ private:
         if (front.epoch > clockEpoch) {
             if (synced && audioDriving && speed == NormalSpeed) return false;
             if (synced && front.seamless && presented && presentationClock.Now() < static_cast<double>(lastPresented + frameDuration())) return false;
+            if (holdForLoopWarning(front.epoch)) return false;
             presentationClock.Rebase(static_cast<double>(front.info.timestamp));
             clockEpoch = front.epoch;
         }
@@ -566,6 +597,7 @@ private:
             reconcileExhaustedAudioClock();
             return false;
         }
+        if (holdForLoopWarning(frames.front().epoch)) return false;
         const auto epoch = frames.front().epoch;
         const bool unsynced = syncMode != SyncModeDefault;
         present(audio, info);
@@ -757,7 +789,7 @@ private:
             std::lock_guard lock(mutex);
             decoder.free.push_back(buffer);
         }
-        condition.notify_all();
+        condition.NotifyAll();
     }
 
     void present(Decoder& decoder, AvPlayerFrameInfoEx& info) {
@@ -769,12 +801,13 @@ private:
         decoder.current = std::move(decoder.frames.front());
         decoder.frames.pop_front();
         info = decoder.current->info;
-        bool looped = false;
-        while (!loopEpochs.empty() && loopEpochs.front() <= decoder.current->epoch) {
-            looped = looped || loopEpochs.front() == decoder.current->epoch;
-            loopEpochs.pop_front();
-        }
-        if (looped) events.OnWarning(SCE_AVPLAYER_ERROR_WAR_LOOPING_BACK);
+        while (!loopEpochs.empty() && loopEpochs.front() <= decoder.current->epoch) loopEpochs.pop_front();
+    }
+
+    bool holdForLoopWarning(std::uint64_t epoch) {
+        if (std::find(loopEpochs.begin(), loopEpochs.end(), epoch) == loopEpochs.end()) return false;
+        if (!loopWarning || loopWarning->first != epoch) loopWarning = std::pair{epoch, events.OnWarning(SCE_AVPLAYER_ERROR_WAR_LOOPING_BACK)};
+        return !events.WarningDelivered(loopWarning->second);
     }
 
     void dropLateAudio() {
@@ -803,7 +836,7 @@ private:
             std::optional<Reposition> requested;
             {
                 std::unique_lock lock(mutex);
-                condition.wait(lock, [&] { return stopping || reposition.has_value() || (!ended && !demuxerSaturated()); });
+                condition.Wait(lock, [&] { return stopping || reposition.has_value() || (!ended && !demuxerSaturated()); });
                 if (stopping) break;
                 requested = reposition;
             }
@@ -816,6 +849,7 @@ private:
                     ++demuxEpoch;
                     minEpoch = demuxEpoch;
                     loopEpochs.clear();
+                    loopWarning.reset();
                     for (auto* decoder : {&video, &audio}) {
                         if (decoder->stream < 0) continue;
                         for (auto& item : decoder->packets) av_packet_free(&item.packet);
@@ -834,7 +868,7 @@ private:
                     audioDriving = false;
                     reconciledAudioClock = false;
                 }
-                condition.notify_all();
+                condition.NotifyAll();
                 if (requested->announce) events.OnWarning(SCE_AVPLAYER_ERROR_WAR_JUMP_COMPLETE);
                 ended = false;
                 continue;
@@ -852,7 +886,7 @@ private:
                         loopEpochs.push_back(demuxEpoch);
                         pushAll(PacketKind::Drain, demuxEpoch, 0);
                     }
-                    condition.notify_all();
+                    condition.NotifyAll();
                     continue;
                 }
                 {
@@ -860,7 +894,7 @@ private:
                     pushAll(PacketKind::End, demuxEpoch, 0);
                     demuxEnded = true;
                 }
-                condition.notify_all();
+                condition.NotifyAll();
                 ended = true;
                 continue;
             }
@@ -876,7 +910,7 @@ private:
                 target->packets.push_back({PacketKind::Data, owned, demuxEpoch, 0});
                 target->queuedBytes += static_cast<std::uint64_t>(owned->size);
             }
-            condition.notify_all();
+            condition.NotifyAll();
         }
         av_packet_free(&packet);
     }
@@ -887,7 +921,7 @@ private:
             PacketItem item;
             {
                 std::unique_lock lock(mutex);
-                condition.wait(lock, [&] { return stopping || !decoder.packets.empty(); });
+                condition.Wait(lock, [&] { return stopping || !decoder.packets.empty(); });
                 if (stopping) break;
                 item = decoder.packets.front();
                 decoder.packets.pop_front();
@@ -941,7 +975,7 @@ private:
             }
             }
             av_packet_free(&item.packet);
-            condition.notify_all();
+            condition.NotifyAll();
         }
         av_frame_free(&frame);
     }
@@ -965,7 +999,22 @@ private:
 
     Acquire acquireBuffer(Decoder& decoder, std::uint64_t epoch, std::uint8_t*& buffer) {
         std::unique_lock lock(mutex);
-        condition.wait(lock, [&] { return stopping || !decoder.free.empty() || epoch < minEpoch; });
+        const auto ready = [&] {
+            if (decoder.video && decoder.free.empty()) recycleLateLocked(decoder);
+            return stopping || !decoder.free.empty() || epoch < minEpoch;
+        };
+        while (!ready()) {
+            const auto period = decoder.video && followsClockLocked() ? frameDuration() : 0;
+            if (period != 0) {
+                const auto observer = bufferWaitObserver.load(std::memory_order_acquire);
+                const auto start = observer != nullptr ? std::chrono::steady_clock::now() : std::chrono::steady_clock::time_point{};
+                const bool notified = condition.WaitUntil(lock, TimedWait::DeadlineNanos(period * 1000));
+                if (observer != nullptr && !notified) {
+                    const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start).count();
+                    observer(period, static_cast<std::uint64_t>(elapsed));
+                }
+            } else condition.Wait(lock);
+        }
         if (stopping) return Acquire::Stopping;
         if (epoch < minEpoch) return Acquire::Stale;
         buffer = decoder.free.back();
@@ -982,7 +1031,7 @@ private:
                 decoder.frames.push_back(frame);
             }
         }
-        condition.notify_all();
+        condition.NotifyAll();
     }
 
     bool deliverVideo(Decoder& decoder, const AVFrame& frame) {
@@ -1002,6 +1051,13 @@ private:
             std::lock_guard lock(mutex);
             decoder.seamless = seamless;
             return true;
+        }
+        {
+            std::lock_guard lock(mutex);
+            if (lateForClockLocked(decoder, timestamp, epoch)) {
+                decoder.seamless = seamless;
+                return true;
+            }
         }
         const auto width = static_cast<std::uint32_t>(frame.width);
         const auto height = static_cast<std::uint32_t>(frame.height);
@@ -1120,7 +1176,7 @@ private:
     std::uint64_t duration = 0;
 
     std::mutex mutex;
-    std::condition_variable condition;
+    TimedWait::Condition condition;
     Decoder video;
     Decoder audio;
     std::thread demuxer;
@@ -1138,6 +1194,7 @@ private:
     std::uint64_t minEpoch = 0;
     std::uint64_t clockEpoch = 0;
     std::deque<std::uint64_t> loopEpochs;
+    std::optional<std::pair<std::uint64_t, std::uint64_t>> loopWarning;
     bool audioDriving = false;
     bool audioHasTimestamp = false;
     double lastAudioTimestamp = 0.0;
@@ -1159,6 +1216,10 @@ private:
     std::vector<std::int16_t> sampleBuffer;
 };
 
+}
+
+void SetBufferWaitObserverForTest(void (*observer)(std::uint64_t, std::uint64_t)) {
+    bufferWaitObserver.store(observer, std::memory_order_release);
 }
 
 std::unique_ptr<ISource> OpenSource(const SourceSettings& settings, const std::string& path, ISourceEvents& events) {

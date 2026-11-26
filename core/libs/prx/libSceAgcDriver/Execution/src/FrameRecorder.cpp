@@ -277,7 +277,17 @@ void FrameRecorder::writeReferenceFrames() {
 }
 
 void FrameRecorder::record(FrameCall call, bool prologueCall, std::span<const Shader* const> shaders, const std::function<void()>& accept) {
-    std::lock_guard lock(mutex);
+    std::unique_lock lock(mutex);
+    if (accept && !prologueCall && state != State::Recording) {
+        unrecordedAccepts.fetch_add(1, std::memory_order_relaxed);
+        lock.unlock();
+        struct Accepted {
+            std::atomic<std::uint64_t>& count;
+            ~Accepted() { count.fetch_sub(1, std::memory_order_release); }
+        } accepted{unrecordedAccepts};
+        accept();
+        return;
+    }
     recordLocked(std::move(call), prologueCall, shaders);
     if (accept) accept();
 }
@@ -553,12 +563,16 @@ void FrameRecorder::stop(const char* reason) {
     state = State::Done;
 }
 
+void FrameRecorder::SetStartIdleWaitForTest(std::function<bool()> wait) {
+    startIdleWaitForTest = std::move(wait);
+}
+
 void FrameRecorder::start() {
     ++startAttempts;
     auto& driver = DriverDetail::Driver::Get();
-    if (!driver.WaitIdleUnlessTitleWaitsFor(std::chrono::seconds(10))) {
+    if (unrecordedAccepts.load(std::memory_order_acquire) != 0 || !(startIdleWaitForTest ? startIdleWaitForTest() : driver.WaitIdleUnlessTitleWaitsFor(std::chrono::seconds(10)))) {
         if (startAttempts >= 600) {
-            std::fprintf(stderr, "[frame-capture] giving up: the driver was not idle at any of %llu frame boundaries\n", static_cast<unsigned long long>(startAttempts));
+            std::fprintf(stderr, "[frame-capture] giving up: the driver was not idle, or a guest call was still being accepted, at all of %llu frame boundaries\n", static_cast<unsigned long long>(startAttempts));
             state = State::Done;
         }
         return;
@@ -674,12 +688,12 @@ std::vector<FrameRecorder::Range> FrameRecorder::committedRanges() {
     if (size == 0) throw std::runtime_error("frame capture: the guest arena is not reserved");
     std::vector<Range> result;
     for (const auto& allocation : GuestAllocations::GuestAllocationsAcquireAll_nid_postfix()) {
-        if (!allocation->readable) continue;
+        if (!allocation->readable && !allocation->gpu) continue;
         const auto first = allocation->address;
         const auto end = first + allocation->bytes;
         const auto firstRange = result.size();
         const bool host = first < base || end > base + size;
-        const auto access = FrameRangeAccess::Readable | (allocation->writable ? FrameRangeAccess::Writable : 0u) | (allocation->gpu ? FrameRangeAccess::Gpu : 0u);
+        const auto access = (allocation->readable ? FrameRangeAccess::Readable : 0u) | (allocation->writable ? FrameRangeAccess::Writable : 0u) | (allocation->gpu ? FrameRangeAccess::Gpu : 0u);
         for (auto address = first; address < end;) {
             MEMORY_BASIC_INFORMATION info{};
             if (VirtualQuery(reinterpret_cast<const void*>(static_cast<std::uintptr_t>(address)), &info, sizeof(info)) == 0) throw std::runtime_error("frame capture: VirtualQuery failed inside the guest arena");
@@ -710,12 +724,12 @@ std::vector<FrameRecorder::Range> FrameRecorder::committedRanges() {
     if (size == 0) throw std::runtime_error("frame capture: the guest arena is not reserved");
     std::vector<Range> result;
     for (const auto& allocation : GuestAllocations::GuestAllocationsAcquireAll_nid_postfix()) {
-        if (!allocation->readable) continue;
+        if (!allocation->readable && !allocation->gpu) continue;
         const auto first = allocation->address;
         const auto end = first + allocation->bytes;
         const auto firstRange = result.size();
         const bool host = first < base || end > base + size;
-        const auto access = FrameRangeAccess::Readable | (allocation->writable ? FrameRangeAccess::Writable : 0u) | (allocation->gpu ? FrameRangeAccess::Gpu : 0u);
+        const auto access = (allocation->readable ? FrameRangeAccess::Readable : 0u) | (allocation->writable ? FrameRangeAccess::Writable : 0u) | (allocation->gpu ? FrameRangeAccess::Gpu : 0u);
         HostMapping::Walk(first, end, "frame capture", [&](const HostMapping::Mapping& mapping) {
             if (!mapping.readable && !mapping.writable && !mapping.executable) return;
             const auto add = [&](std::uint64_t address, std::uint64_t regionEnd, bool readable) {
