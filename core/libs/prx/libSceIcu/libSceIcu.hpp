@@ -57,4 +57,3 @@
 #include "UtfConversions.hpp"
 #include "ConverterFileSeparator.hpp"
 #include "BreakIterator.hpp"
-#include "Data.hpp"
