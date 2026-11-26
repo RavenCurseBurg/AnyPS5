@@ -1,0 +1,82 @@
+{
+  "base": "cf76855f205da53a08e86feea930c75f7d2f217c",
+  "candidate": "4c06c7c4b59418b97f3123a6d62aefe1214f69dd",
+  "configurations": {
+    "baseline-unrestricted": {
+      "placeholder_objects": 0,
+      "enabled_executables": 736
+    },
+    "proposed-unrestricted": {
+      "placeholder_objects": 0,
+      "enabled_executables": 736
+    },
+    "baseline-one-selected": {
+      "placeholder_objects": 735,
+      "enabled_executables": 1
+    },
+    "proposed-one-selected": {
+      "placeholder_objects": 1,
+      "enabled_executables": 1
+    },
+    "baseline-unknown": {
+      "rejected": true
+    },
+    "proposed-unknown": {
+      "rejected": true
+    }
+  },
+  "matching_counts_and_digests": {
+    "registered": 2137,
+    "all_ctest_count": 7035,
+    "all_ctest_digest": "7eeb6ea348707326eb2554c291d6fc7f89ad0649471ab33f823353c877130bbf",
+    "official_audit_digest": "c46116dc3780fd33260b1336c56d45cc46ead8021a06bcd592ec768e16ca0538",
+    "guest_targets": 3428,
+    "manifest_paths": 3582,
+    "disabled": 733,
+    "enabled": [
+      "agc_driver_f16_to_f32_unpack_tests",
+      "agc_driver_f64_fma_subnormals_tests",
+      "agc_driver_registration_prepare_shutdown_tests"
+    ],
+    "sample_outcomes": {
+      "RTX 4060": {
+        "skipped": 35,
+        "passed": 5
+      },
+      "UHD": {
+        "skipped": 36,
+        "passed": 4
+      }
+    }
+  },
+  "full_measurement": {
+    "baseline": {
+      "sha": "cf76855f205da53a08e86feea930c75f7d2f217c",
+      "compiled": 733,
+      "linked": 733,
+      "elapsed_seconds": 354.12322760000825,
+      "direct_77": 733,
+      "checked_manifest_entries": 733,
+      "selected_registrations": 1312,
+      "ctest_outcomes": {
+        "skipped": 1312
+      },
+      "extra_registered_cases": [],
+      "checked_at": "2026-11-26T01:44:54.313474+00:00"
+    },
+    "proposed": {
+      "sha": "4c06c7c4b59418b97f3123a6d62aefe1214f69dd",
+      "compiled": 1,
+      "linked": 733,
+      "elapsed_seconds": 261.5295535000041,
+      "direct_77": 733,
+      "checked_manifest_entries": 733,
+      "selected_registrations": 1312,
+      "ctest_outcomes": {
+        "skipped": 1312
+      },
+      "extra_registered_cases": [],
+      "checked_at": "2026-11-26T02:01:00.396116+00:00"
+    }
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "sample_executables": [
+    "agc_driver_address_draw_space_reuse_tests",
+    "agc_driver_device_selection_tests",
+    "agc_driver_ds_wrxchg2_b64_tests",
+    "agc_driver_f16_denormal_flush_tests",
+    "agc_driver_f64_rounding_tests",
+    "agc_driver_format_d16_store_tests",
+    "agc_driver_gated_dispatch_capture_tests",
+    "agc_driver_host_import_proofs_tests",
+    "agc_driver_image_array_window_past_layer_limit_tests",
+    "agc_driver_image_plane_address_on_line_tests",
+    "agc_driver_image_plane_bias_on_single_level_volume_tests",
+    "agc_driver_image_store_array_through_volume_tests",
+    "agc_driver_inactive_vertex_point_size_tests",
+    "agc_driver_indexed_copy_gpu_parameters_tests",
+    "agc_driver_mac_legacy_tests",
+    "agc_driver_pixel32_ar_export_tests",
+    "agc_driver_rect_list_vertex_layer_tests",
+    "agc_driver_scalar_program_flow_tests",
+    "agc_driver_scalar_sopk_compare_tests",
+    "agc_driver_split_table_call_driver_tests",
+    "agc_driver_stencil_ref_export_tests",
+    "agc_driver_vcmp_eq_f16_clamp_tests",
+    "agc_driver_vcmp_f32_denormal_modes_tests",
+    "agc_driver_vector_window_narrowing_tests"
+  ],
+  "sample_rebuilds": [
+    {
+      "arm": "baseline",
+      "stage": "0-baseline",
+      "rep": 0,
+      "seconds": 16.06613729998935,
+      "compiled": 24,
+      "linked": 24
+    },
+    {
+      "arm": "baseline",
+      "stage": "0-baseline",
+      "rep": 1,
+      "seconds": 16.8897178999905,
+      "compiled": 24,
+      "linked": 24
+    },
+    {
+      "arm": "proposed",
+      "stage": "1-proposed",
+      "rep": 0,
+      "seconds": 11.924268200004008,
+      "compiled": 1,
+      "linked": 24
+    },
+    {
+      "arm": "proposed",
+      "stage": "1-proposed",
+      "rep": 1,
+      "seconds": 12.465213000017684,
+      "compiled": 1,
+      "linked": 24
+    },
+    {
+      "arm": "proposed",
+      "stage": "2-proposed",
+      "rep": 0,
+      "seconds": 15.970089999987977,
+      "compiled": 1,
+      "linked": 24
+    },
+    {
+      "arm": "proposed",
+      "stage": "2-proposed",
+      "rep": 1,
+      "seconds": 13.832803099998273,
+      "compiled": 1,
+      "linked": 24
+    },
+    {
+      "arm": "baseline",
+      "stage": "3-baseline",
+      "rep": 0,
+      "seconds": 21.98232559999451,
+      "compiled": 24,
+      "linked": 24
+    },
+    {
+      "arm": "baseline",
+      "stage": "3-baseline",
+      "rep": 1,
+      "seconds": 23.86453559997608,
+      "compiled": 24,
+      "linked": 24
+    }
+  ],
+  "full_rebuilds_repeated": [
+    {
+      "order": 0,
+      "arm": "proposed",
+      "compiled": 1,
+      "linked": 733,
+      "elapsed_seconds": 150.25500830000965
+    },
+    {
+      "order": 1,
+      "arm": "baseline",
+      "compiled": 733,
+      "linked": 733,
+      "elapsed_seconds": 267.1625839000044
+    },
+    {
+      "order": 2,
+      "arm": "baseline",
+      "compiled": 733,
+      "linked": 733,
+      "elapsed_seconds": 261.90085470001213
+    },
+    {
+      "order": 3,
+      "arm": "proposed",
+      "compiled": 1,
+      "linked": 733,
+      "elapsed_seconds": 171.93966380000347
+    }
+  ]
+}
