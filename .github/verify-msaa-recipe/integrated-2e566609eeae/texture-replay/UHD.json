@@ -1,0 +1,35 @@
+{
+  "rc": 0,
+  "repeat": 2,
+  "expected_device": "UHD",
+  "environment": {},
+  "cases": {
+    "agc_driver_texture_dcc_target_2": {
+      "status": "run",
+      "failure": false,
+      "skip": false,
+      "selections": [],
+      "layer": false,
+      "validation": []
+    },
+    "agc_driver_texture_dcc_target_4": {
+      "status": "run",
+      "failure": false,
+      "skip": false,
+      "selections": [],
+      "layer": false,
+      "validation": []
+    },
+    "agc_driver_texture_dcc_target_8": {
+      "status": "run",
+      "failure": false,
+      "skip": false,
+      "selections": [],
+      "layer": false,
+      "validation": []
+    }
+  },
+  "loader": true,
+  "missing_layer": false,
+  "validation": []
+}

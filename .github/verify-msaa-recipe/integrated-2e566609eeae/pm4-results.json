@@ -1,0 +1,78 @@
+{
+  "pm4-RTX-4060-pipeline-parent": {
+    "rc": 0,
+    "cache": 64,
+    "recipes": 0,
+    "validation": [],
+    "ok": true
+  },
+  "pm4-RTX-4060-pipeline-trace-parent": {
+    "rc": 0,
+    "digest_rc": 0,
+    "ok": true
+  },
+  "pm4-RTX-4060-inline-parent": {
+    "rc": 0,
+    "cache": 64,
+    "recipes": 0,
+    "validation": [],
+    "ok": true
+  },
+  "pm4-UHD-pipeline-parent": {
+    "rc": 0,
+    "cache": 64,
+    "recipes": 0,
+    "validation": [],
+    "ok": true
+  },
+  "pm4-UHD-pipeline-trace-parent": {
+    "rc": 0,
+    "digest_rc": 0,
+    "ok": true
+  },
+  "pm4-UHD-inline-parent": {
+    "rc": 0,
+    "cache": 64,
+    "recipes": 0,
+    "validation": [],
+    "ok": true
+  },
+  "pm4-RTX-4060-pipeline-candidate": {
+    "rc": 0,
+    "cache": 64,
+    "recipes": 64,
+    "validation": [],
+    "ok": true
+  },
+  "pm4-RTX-4060-pipeline-trace-candidate": {
+    "rc": 0,
+    "digest_rc": 0,
+    "ok": true
+  },
+  "pm4-RTX-4060-inline-candidate": {
+    "rc": 0,
+    "cache": 64,
+    "recipes": 64,
+    "validation": [],
+    "ok": true
+  },
+  "pm4-UHD-pipeline-candidate": {
+    "rc": 0,
+    "cache": 64,
+    "recipes": 64,
+    "validation": [],
+    "ok": true
+  },
+  "pm4-UHD-pipeline-trace-candidate": {
+    "rc": 0,
+    "digest_rc": 0,
+    "ok": true
+  },
+  "pm4-UHD-inline-candidate": {
+    "rc": 0,
+    "cache": 64,
+    "recipes": 64,
+    "validation": [],
+    "ok": true
+  }
+}

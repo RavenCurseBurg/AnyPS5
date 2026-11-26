@@ -1,0 +1,18 @@
+{
+  "parent RTX 4060": {
+    "returncode": 1,
+    "expected": true
+  },
+  "parent UHD": {
+    "returncode": 1,
+    "expected": true
+  },
+  "candidate RTX 4060": {
+    "returncode": 0,
+    "expected": true
+  },
+  "candidate UHD": {
+    "returncode": 0,
+    "expected": true
+  }
+}
