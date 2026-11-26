@@ -803,7 +803,8 @@ int main(int argc, char **argv) {
             self.assertEqual(self.main(build, [source]), 0)
         self.assertEqual(selections, ["0,0,0,1,2\n"])
         self.assertEqual(builds, [["libs"], ["companion", "fixture", "runner"]])
-        self.assertIn("(3 targets, 2 tests)", output.getvalue())
+        self.assertIn("owner_targets=3, additional_owner_targets=3", output.getvalue())
+        self.assertIn("scheduled_tests=2, selected_indices=2", output.getvalue())
 
     def test_a_production_only_change_still_builds_libs_and_runs_nothing(self):
         build = self.fixture([self.target("guest_pad_tests", source="core/libs/tests/Guest.cpp", fragment="libc.prx")])

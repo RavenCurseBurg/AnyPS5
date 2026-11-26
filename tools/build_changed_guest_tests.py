@@ -315,7 +315,8 @@ def run(build_dir, selected, targets_by_name, output_log=None, script_tests=(), 
     with ctest_index_file("0,0,0," + ",".join(map(str, sorted(indices)))) as selection:
         started = phase_start("scheduled test owner discovery")
         owners, scheduled_count = scheduled_test_owners(build_dir, selection, targets_by_name)
-        additional = (owners | set(required_inputs)) - selected_names
+        owners.update(required_inputs)
+        additional = owners - selected_names
         phase_report("scheduled test owner discovery", started,
                      f"owner_targets={len(owners)}, additional_owner_targets={len(additional)}")
         if additional:
