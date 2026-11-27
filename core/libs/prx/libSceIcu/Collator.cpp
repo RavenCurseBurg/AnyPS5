@@ -1,4 +1,5 @@
 #include "prx/libSceIcu/CollatorHost.hpp"
+#include "prx/libSceIcu/DefaultLocaleName.hpp"
 #include "prx/libSceIcu/RecoveredSignatures.hpp"
 #include "prx/libSceIcu/Status.hpp"
 #include "prx/libc/include/General.hpp"
@@ -29,8 +30,8 @@ struct RegisteredCollator {
 };
 
 Registry& Collators() {
-    static Registry registry;
-    return registry;
+    static auto* registry = new Registry;
+    return *registry;
 }
 
 bool CopyIn(void* destination, const void* source, std::size_t bytes) {
@@ -228,7 +229,7 @@ UCollator* APS5_VABI ucol_open_nid_postfix(const char* locale, std::int32_t* sta
         if (copied != 0) NotImplemented_nid_no_patch(__func__);
     }
     auto outgoing = incoming;
-    void* collator = Icu::CollatorHost::Open(locale ? name.c_str() : nullptr, outgoing);
+    void* collator = Icu::CollatorHost::Open(locale ? name.c_str() : Icu::DefaultLocaleName(), outgoing);
     if (collator) {
         try {
             Register(collator);

@@ -1,4 +1,5 @@
 #include "prx/libSceIcu/BreakIterator.hpp"
+#include "prx/libSceIcu/DefaultLocaleName.hpp"
 #include "prx/libc/include/General.hpp"
 #include "unicode/ubrk.h"
 #include "unicode/uenum.h"
@@ -72,7 +73,7 @@ void* APS5_VABI ubrk_open(std::int32_t type, const char* locale, const char16_t*
                          std::int32_t* error) {
     if (!error) APS5_INVALID_ARG_EX;
     auto status = static_cast<UErrorCode>(*error);
-    auto* result = ubrk_open_78(static_cast<UBreakIteratorType>(type), locale, text, length, &status);
+    auto* result = ubrk_open_78(static_cast<UBreakIteratorType>(type), locale ? locale : Icu::DefaultLocaleName(), text, length, &status);
     *error = status;
     if (result) {
         try {
