@@ -83,8 +83,9 @@ extern "C" {
 void* APS5_VABI ubrk_open(std::int32_t type, const char* locale, const char16_t* text, std::int32_t length,
                          std::int32_t* error) {
     if (!error) APS5_INVALID_ARG_EX;
-    const std::string localeName = locale ? locale : Icu::DefaultLocaleName();
     auto status = static_cast<UErrorCode>(*error);
+    if (U_FAILURE(status)) return nullptr;
+    const std::string localeName = locale ? locale : Icu::DefaultLocaleName();
     auto* result = ubrk_open_78(static_cast<UBreakIteratorType>(type), localeName.c_str(), text, length, &status);
     *error = status;
     if (result) {
