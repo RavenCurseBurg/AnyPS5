@@ -26,9 +26,11 @@ foreach(tool genbrk gendict genrb gencnval icupkg genccode)
     list(APPEND icu_host_outputs ${icu_host_${tool}})
 endforeach()
 ExternalProject_Add(icu_host_tools
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/cmake/icu-host
-    BINARY_DIR ${icu_host_dir}
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}
+    BINARY_DIR ${icu_host_dir}/build
     CMAKE_ARGS ${icu_host_compilers}
+        -DANYPS5_ICU_HOST_TOOLS_ONLY=ON
+        -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=${icu_host_dir}/bin
         -DICU_SOURCE_DIR=${ICU_SOURCE_DIR}
         -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
         -DCMAKE_BUILD_TYPE=Release
