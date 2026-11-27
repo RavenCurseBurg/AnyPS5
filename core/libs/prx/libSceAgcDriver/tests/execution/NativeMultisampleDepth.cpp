@@ -406,8 +406,7 @@ void TargetRefuses(Action action, std::string_view expected) {
 }
 
 template<typename Action>
-void PublicationRefuses(VkFormat format, Action action) {
-    if (format == VK_FORMAT_D16_UNORM) return;
+void PublicationRefuses(Action action) {
     TargetRefuses(action, "sample-preserving guest publication");
 }
 
@@ -1924,8 +1923,8 @@ void CheckDepthTarget(Context context, VkFormat format, std::uint32_t fragments,
     Require(DepthSurfaceView(context, target) == view, "native depth attachment did not reuse its image");
     NoteDepthSurfaceWrite(context, target);
     std::array<std::byte, 1> beforeSampling{};
-    PublicationRefuses(format, [&] { AgcDriver::GuestMemory::Read(target.address + bytes - 1u, beforeSampling); });
-    PublicationRefuses(format, [&] { RequireNoMultisampleTarget(target.htileAddress + metadataBytes - 1u, 1u, "a DMA copy"); });
+    PublicationRefuses([&] { AgcDriver::GuestMemory::Read(target.address + bytes - 1u, beforeSampling); });
+    PublicationRefuses([&] { RequireNoMultisampleTarget(target.htileAddress + metadataBytes - 1u, 1u, "a DMA copy"); });
     const auto words = DepthSampleWords(target);
     auto texture = CachedSampledTexture(context, words);
     auto arrayTexture = CachedSampledTexture(context, words, VK_IMAGE_VIEW_TYPE_2D_ARRAY);
@@ -2229,19 +2228,19 @@ void CheckDepthTarget(Context context, VkFormat format, std::uint32_t fragments,
     Require(std::all_of(memory.Data(), memory.Data() + bytes, [](auto value) { return value == std::byte{0xa5}; }), "native depth sampling silently published guest memory");
     std::array<std::byte, 1> probe{};
     for (const auto address : {target.address, target.address + bytes - 1u, target.htileAddress, target.htileAddress + metadataBytes - 1u}) {
-        PublicationRefuses(format, [&] { RequireNoResidentDepthRead_nid_no_patch(address, 1u); });
-        PublicationRefuses(format, [&] { AgcDriver::GuestMemory::Read(address, probe); });
-        PublicationRefuses(format, [&] { RequireNoMultisampleTarget(address, 1u, "a DMA copy"); });
+        PublicationRefuses([&] { RequireNoResidentDepthRead_nid_no_patch(address, 1u); });
+        PublicationRefuses([&] { AgcDriver::GuestMemory::Read(address, probe); });
+        PublicationRefuses([&] { RequireNoMultisampleTarget(address, 1u, "a DMA copy"); });
     }
     TargetMemory unrelated(65536u);
     AgcDriver::GuestMemory::Read(unrelated.Address(), probe);
     Require(probe[0] == std::byte{0xa5}, "resident depth guard blocked an unrelated read");
     auto alias = target;
     alias.htileAddress += 65536u;
-    PublicationRefuses(format, [&] { DepthSurfaceView(context, alias); });
+    PublicationRefuses([&] { DepthSurfaceView(context, alias); });
     alias = target;
     alias.htileDepthOnly = !target.htileDepthOnly;
-    PublicationRefuses(format, [&] { DepthSurfaceView(context, alias); });
+    PublicationRefuses([&] { DepthSurfaceView(context, alias); });
     auto resource = DecodeTextureResource(words);
     for (std::uint32_t field = 0u; field < 18u; ++field) {
         auto changed = resource;
@@ -2321,8 +2320,8 @@ void CheckUnwrittenGuestAccess(Context context, VkFormat format, std::uint32_t f
         view = rebound;
     }
     NoteDepthSurfaceWrite(context, target);
-    PublicationRefuses(format, [&] { AgcDriver::GuestMemory::Read(target.address, probe); });
-    PublicationRefuses(format, [&] { RequireNoMultisampleTarget(target.htileAddress, 1u, "a DMA copy"); });
+    PublicationRefuses([&] { AgcDriver::GuestMemory::Read(target.address, probe); });
+    PublicationRefuses([&] { RequireNoMultisampleTarget(target.htileAddress, 1u, "a DMA copy"); });
     Require(resident(), "a refused guest access retired a written native depth surface");
     for (std::size_t offset = 0u; offset < bytes; ++offset) Require(memory.Data()[offset] == guestByte(offset), "retiring an unwritten native depth surface changed its guest bytes");
     Require(std::all_of(metadata.Data(), metadata.Data() + metadataBytes, [](std::byte value) { return value == std::byte{0}; }), "retiring an unwritten native depth surface changed its HTILE");
@@ -3583,7 +3582,7 @@ void CheckRetirement(Context context, VkFormat format, std::uint32_t samples, st
     Require(MultisampleTargetView(context, color) != VK_NULL_HANDLE, "retirement fixture has no color attachment");
     recorder.Sync();
     const auto guarded = [&] {
-        PublicationRefuses(format, [&] { RequireNoResidentDepthRead_nid_no_patch(target.address, 1u); });
+        PublicationRefuses([&] { RequireNoResidentDepthRead_nid_no_patch(target.address, 1u); });
     };
     {
         GuestAllocations::Mutation mutation;
