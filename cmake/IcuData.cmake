@@ -46,23 +46,28 @@ if(CMAKE_HOST_WIN32)
 else()
     set(icu_data_mode unix-exec)
 endif()
-file(TO_NATIVE_PATH "${ICU_SOURCE_DIR}/python" icu_python_path)
+set(icu_python_path ${ICU_SOURCE_DIR}/python)
+set(icu_data_python_args
+    ${CMAKE_SOURCE_DIR}/cmake/IcuDataBuilder.py
+    ${icu_python_path}
+    ${icu_host_dir}/bin
+    ${ICU_SOURCE_DIR}/data
+    ${icu_data_dir}/icudt78l
+    ${icu_data_dir}/tmp)
 if(CMAKE_HOST_WIN32)
-    set(icu_data_python_args -c "import builtins,runpy,sys\;builtins.exit=sys.exit\;sys.path.insert(0,r'${icu_python_path}')\;runpy.run_module('icutools.databuilder',run_name='__main__')" --seqmode=parallel)
-else()
-    set(icu_data_python_args -m icutools.databuilder)
+    list(APPEND icu_data_python_args --seqmode=parallel)
 endif()
 add_custom_command(OUTPUT ${icu_data_dir}/icudt78l_dat.c
     COMMAND ${CMAKE_COMMAND} -E make_directory ${icu_data_dir}/icudt78l ${icu_data_dir}/tmp
-    COMMAND ${CMAKE_COMMAND} -E time ${CMAKE_COMMAND} -E env PYTHONPATH=${icu_python_path}
-        ${Python3_EXECUTABLE} ${icu_data_python_args}
+    COMMAND ${CMAKE_COMMAND} -E time ${Python3_EXECUTABLE} ${icu_data_python_args}
         --mode=${icu_data_mode} --tool_cfg=host --tool_dir=${icu_host_dir}/bin
         --src_dir=${ICU_SOURCE_DIR}/data --out_dir=${icu_data_dir}/icudt78l --tmp_dir=${icu_data_dir}/tmp
         --filter_file=${CMAKE_SOURCE_DIR}/cmake/IcuDataFilter.json --verbose
     COMMAND ${icu_host_icupkg} -tl -a ${icu_data_dir}/tmp/icudata.lst
         -s ${icu_data_dir}/icudt78l new ${icu_data_dir}/icudt78l.dat
     COMMAND ${icu_host_genccode} -e icudt78 -d ${icu_data_dir} ${icu_data_dir}/icudt78l.dat
-    DEPENDS icu_host_tools ${icu_host_outputs} ${icu_data_inputs} ${CMAKE_SOURCE_DIR}/cmake/IcuDataFilter.json
+    DEPENDS icu_host_tools ${icu_host_outputs} ${icu_data_inputs} ${CMAKE_SOURCE_DIR}/cmake/IcuDataBuilder.py
+        ${CMAKE_SOURCE_DIR}/cmake/IcuDataFilter.json
     VERBATIM)
 get_target_property(icu_common_sources icu_common SOURCES)
 list(REMOVE_ITEM icu_common_sources ${ICU_SOURCE_DIR}/stubdata/stubdata.cpp ${ICU_NORMALIZATION_SOURCE})
