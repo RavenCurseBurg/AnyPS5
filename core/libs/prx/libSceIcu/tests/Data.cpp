@@ -1,4 +1,5 @@
 #include "prx/libSceIcu/libSceIcu.hpp"
+#include "prx/libSceIcu/Status.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -85,12 +86,30 @@ void Allocator() {
     Expect(iterator && status <= 0, "borrow large caller buffer");
     Expect(memory.largest < large.size() * sizeof(char16_t), "open does not allocate a copy of caller text");
     ubrk_close(iterator);
+    status = 0;
+    iterator = ubrk_open(0, "en", u"abcd", 4, &status);
+    Expect(iterator && status <= 0 && ubrk_next(iterator) == 1, "caller iterator positioned");
+    auto* supplied = static_cast<UBreakIterator*>(iterator);
+    status = 15;
+    Expect(!usearch_open_nid_postfix(u"a", 1, u"ab", 2, "en", supplied, &status) && status == 15,
+           "search preserves incoming failure");
+    status = 0;
+    Expect(!usearch_open_nid_postfix(u"a", 1, u"ab", 2, "en", supplied, &status) && status == Icu::UnsupportedError,
+           "search rejects an independently owned iterator");
+    Expect(ubrk_current(iterator) == 1 && ubrk_last(iterator) == 4, "caller keeps the iterator position and text");
+    ubrk_close(iterator);
+    status = 0;
+    Expect(usearch_open_nid_postfix(u"a", 1, u"ab", 2, "en", nullptr, &status) && status <= 0,
+           "search opens with the guest allocator");
     u_cleanup_nid_postfix();
     Expect(memory.live == 0 && memory.allocations == memory.frees, "cleanup frees retained ICU caches before allocator reset");
     status = 0;
     iterator = ubrk_open(0, "en", text, 3, &status);
     Expect(iterator && status <= 0, "embedded data survives cleanup");
     ubrk_close(iterator);
+    status = 0;
+    Expect(usearch_open_nid_postfix(u"b", 1, u"ab", 2, "en", nullptr, &status) && status <= 0,
+           "search reopens after cleanup");
     u_cleanup_nid_postfix();
     std::printf("guest allocator: %zu allocations, %zu frees, %zu cached after warmup\n", memory.allocations, memory.frees, cached);
 }

@@ -8,6 +8,7 @@
 //   Corporation and others.  All Rights Reserved.
 
 #include "prx/libSceIcu/libSceIcu.hpp"
+#include "prx/libSceIcu/NativeLifecycle.hpp"
 #include "prx/libSceIcu/Status.hpp"
 #include "prx/libc/include/Api.hpp"
 #include "prx/libc/include/General.hpp"
@@ -30,7 +31,6 @@ struct MemoryFunctions {
     Icu::MemoryFree release = nullptr;
 };
 
-std::mutex NativeLock;
 std::mutex MemoryLock;
 MemoryFunctions Memory;
 const std::int32_t ZeroMemory[] = {0, 0, 0, 0, 0, 0};
@@ -123,7 +123,7 @@ void APS5_VABI u_setMemoryFunctions_nid_postfix(const void* context, Icu::Memory
         *status = Icu::IllegalArgument;
         return;
     }
-    const std::lock_guard native(NativeLock);
+    const std::lock_guard native(Icu::NativeLifecycleMutex);
     const std::lock_guard lock(MemoryLock);
     auto nativeStatus = static_cast<UErrorCode>(*status);
     u_setMemoryFunctions(nullptr, NativeAllocate, NativeReallocate, NativeRelease, &nativeStatus);
@@ -159,7 +159,8 @@ void APS5_VABI u_setTimeZoneFilesDirectory_nid_postfix(const char* path, std::in
 
 void APS5_VABI u_cleanup_nid_postfix() {
     {
-        const std::lock_guard native(NativeLock);
+        const std::lock_guard native(Icu::NativeLifecycleMutex);
+        Icu::ClearStringSearches();
         u_cleanup();
         const std::lock_guard lock(MemoryLock);
         Memory = {};

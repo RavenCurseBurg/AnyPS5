@@ -1,3 +1,4 @@
+#include "prx/libSceIcu/NativeLifecycle.hpp"
 #include "prx/libSceIcu/RecoveredSignatures.hpp"
 #include "prx/libSceIcu/Status.hpp"
 #include "prx/libSceIcu/StringSearchHost.hpp"
@@ -46,7 +47,7 @@ struct SearchState {
     std::vector<char16_t> text;
 
     ~SearchState() {
-        Icu::StringSearchHost::Close(search);
+        if (search) Icu::StringSearchHost::Close(search);
     }
 };
 
@@ -107,6 +108,13 @@ bool Succeeded(const std::int32_t* status, const char* caller) {
 
 }
 
+void Icu::ClearStringSearches() {
+    auto& registry = Searches();
+    decltype(registry.searches) retired;
+    const std::lock_guard lock(registry.mutex);
+    retired.swap(registry.searches);
+}
+
 extern "C" {
 
 UCollator* APS5_VABI usearch_getCollator_nid_postfix(const UStringSearch* search) {
@@ -130,10 +138,15 @@ UStringSearch* APS5_VABI usearch_open_nid_postfix(const char16_t* pattern, std::
     Icu::RequireStatus(status);
     const auto incoming = CopyIn<std::int32_t>(status, __func__);
     if (incoming > 0) return nullptr;
+    if (breakIterator) {
+        WriteChangedStatus(status, incoming, Icu::UnsupportedError, __func__);
+        return nullptr;
+    }
     if (!pattern || !text || !locale || patternLength < -1 || textLength < -1) {
         WriteChangedStatus(status, incoming, Icu::IllegalArgument, __func__);
         return nullptr;
     }
+    std::unique_lock lifecycle(Icu::NativeLifecycleMutex, std::defer_lock);
     auto state = std::make_shared<SearchState>();
     state->pattern = CopyUnits(pattern, patternLength, __func__);
     state->text = CopyUnits(text, textLength, __func__);
@@ -146,10 +159,11 @@ UStringSearch* APS5_VABI usearch_open_nid_postfix(const char16_t* pattern, std::
     const int copied = CopyGuestString_nid_no_patch(locale, LocaleBytes, localeName);
     errno = savedErrno;
     if (copied != 0) NotImplemented_nid_no_patch(__func__);
+    lifecycle.lock();
     auto outgoing = incoming;
     state->search = static_cast<UStringSearch*>(Icu::StringSearchHost::Open(
         state->pattern.data(), static_cast<std::int32_t>(state->pattern.size()), state->text.data(),
-        static_cast<std::int32_t>(state->text.size()), localeName.c_str(), breakIterator, outgoing));
+        static_cast<std::int32_t>(state->text.size()), localeName.c_str(), outgoing));
     WriteChangedStatus(status, incoming, outgoing, __func__);
     if (!state->search) return nullptr;
     Register(state);

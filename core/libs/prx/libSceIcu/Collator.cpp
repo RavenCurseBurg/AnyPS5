@@ -6,9 +6,10 @@
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <string>
-#include <unordered_set>
+#include <unordered_map>
 #include <utility>
 
 namespace {
@@ -19,7 +20,7 @@ constexpr std::size_t PageBytes = 4096;
 
 struct Registry {
     std::mutex mutex;
-    std::unordered_set<const void*> collators;
+    std::unordered_map<const void*, std::shared_ptr<void>> collators;
 };
 
 Registry& Collators() {
@@ -53,23 +54,26 @@ void WriteStatus(std::int32_t* status, std::int32_t incoming, std::int32_t outgo
     if (!ok) NotImplemented_nid_no_patch(caller);
 }
 
-void* Registered(const UCollator* coll, const char* caller) {
+std::shared_ptr<void> Registered(const UCollator* coll, const char* caller) {
     auto& registry = Collators();
     const std::lock_guard lock(registry.mutex);
-    if (!registry.collators.contains(coll)) NotImplemented_nid_no_patch(caller);
-    return const_cast<UCollator*>(coll);
+    const auto found = registry.collators.find(coll);
+    if (found == registry.collators.end()) NotImplemented_nid_no_patch(caller);
+    return found->second;
 }
 
-void Register(void* collator) {
+void Register(const std::shared_ptr<void>& collator) {
     auto& registry = Collators();
     const std::lock_guard lock(registry.mutex);
-    registry.collators.insert(collator);
+    registry.collators.emplace(collator.get(), collator);
 }
 
-bool Unregister(const void* collator) {
+void Unregister(const void* collator, const char* caller) {
     auto& registry = Collators();
+    decltype(registry.collators)::node_type retired;
     const std::lock_guard lock(registry.mutex);
-    return registry.collators.erase(collator) != 0;
+    retired = registry.collators.extract(collator);
+    if (retired.empty()) NotImplemented_nid_no_patch(caller);
 }
 
 template<class TUnit>
@@ -143,15 +147,14 @@ extern "C" {
 
 void APS5_VABI ucol_close_nid_postfix(UCollator* coll) {
     if (!coll) return;
-    if (!Unregister(coll)) NotImplemented_nid_no_patch(__func__);
-    Icu::CollatorHost::Close(coll);
+    Unregister(coll, __func__);
 }
 
 std::int32_t APS5_VABI ucol_getAttribute_nid_postfix(const UCollator* coll, std::int32_t attr, std::int32_t* status) {
     const auto incoming = ReadStatus(status, __func__);
     if (incoming > 0 || !coll) return UcolDefault;
     auto outgoing = incoming;
-    const auto value = Icu::CollatorHost::GetAttribute(Registered(coll, __func__), attr, outgoing);
+    const auto value = Icu::CollatorHost::GetAttribute(Registered(coll, __func__).get(), attr, outgoing);
     WriteStatus(status, incoming, outgoing, __func__);
     return value;
 }
@@ -193,7 +196,7 @@ const char16_t* APS5_VABI ucol_getRules_nid_postfix(const UCollator*, std::int32
 UCollationStrength APS5_VABI ucol_getStrength_nid_postfix(const UCollator* coll) {
     if (!coll) return UCOL_DEFAULT;
     std::int32_t status = 0;
-    return static_cast<UCollationStrength>(Icu::CollatorHost::GetAttribute(Registered(coll, __func__), UCOL_STRENGTH, status));
+    return static_cast<UCollationStrength>(Icu::CollatorHost::GetAttribute(Registered(coll, __func__).get(), UCOL_STRENGTH, status));
 }
 
 USet* APS5_VABI ucol_getTailoredSet_nid_postfix(const UCollator*, std::int32_t* status) {
@@ -216,14 +219,9 @@ UCollator* APS5_VABI ucol_open_nid_postfix(const char* locale, std::int32_t* sta
     auto outgoing = incoming;
     void* collator = Icu::CollatorHost::Open(locale ? name.c_str() : nullptr, outgoing);
     if (collator) {
-        try {
-            Register(collator);
-            WriteStatus(status, incoming, outgoing, __func__);
-        } catch (...) {
-            Unregister(collator);
-            Icu::CollatorHost::Close(collator);
-            throw;
-        }
+        const std::shared_ptr<void> owner(collator, Icu::CollatorHost::Close);
+        WriteStatus(status, incoming, outgoing, __func__);
+        Register(owner);
         return static_cast<UCollator*>(collator);
     }
     WriteStatus(status, incoming, outgoing, __func__);
@@ -234,33 +232,33 @@ void APS5_VABI ucol_setAttribute_nid_postfix(UCollator* coll, UColAttribute attr
     const auto incoming = ReadStatus(status, __func__);
     if (incoming > 0 || !coll) return;
     auto outgoing = incoming;
-    Icu::CollatorHost::SetAttribute(Registered(coll, __func__), attr, value, outgoing);
+    Icu::CollatorHost::SetAttribute(Registered(coll, __func__).get(), attr, value, outgoing);
     WriteStatus(status, incoming, outgoing, __func__);
 }
 
 void APS5_VABI ucol_setStrength_nid_postfix(UCollator* coll, UCollationStrength strength) {
     if (!coll) return;
     std::int32_t status = 0;
-    Icu::CollatorHost::SetAttribute(Registered(coll, __func__), UCOL_STRENGTH, strength, status);
+    Icu::CollatorHost::SetAttribute(Registered(coll, __func__).get(), UCOL_STRENGTH, strength, status);
 }
 
 UCollationResult APS5_VABI ucol_strcoll_nid_postfix(const UCollator* coll, const char16_t* source, std::int32_t sourceLength,
                                                    const char16_t* target, std::int32_t targetLength) {
-    const void* handle = Registered(coll, __func__);
+    const auto handle = Registered(coll, __func__);
     const auto left = CopyOperand(source, sourceLength, __func__);
     const auto right = CopyOperand(target, targetLength, __func__);
-    return static_cast<UCollationResult>(Icu::CollatorHost::Compare(handle, left.Data(), left.length, right.Data(), right.length));
+    return static_cast<UCollationResult>(Icu::CollatorHost::Compare(handle.get(), left.Data(), left.length, right.Data(), right.length));
 }
 
 UCollationResult APS5_VABI ucol_strcollUTF8_nid_postfix(const UCollator* coll, const char* source, std::int32_t sourceLength,
                                                        const char* target, std::int32_t targetLength, std::int32_t* status) {
     const auto incoming = ReadStatus(status, __func__);
     if (incoming > 0) return UCOL_EQUAL;
-    const void* handle = Registered(coll, __func__);
+    const auto handle = Registered(coll, __func__);
     const auto left = CopyOperand(source, sourceLength, __func__);
     const auto right = CopyOperand(target, targetLength, __func__);
     auto outgoing = incoming;
-    const auto result = Icu::CollatorHost::CompareUtf8(handle, left.Data(), left.length, right.Data(), right.length, outgoing);
+    const auto result = Icu::CollatorHost::CompareUtf8(handle.get(), left.Data(), left.length, right.Data(), right.length, outgoing);
     WriteStatus(status, incoming, outgoing, __func__);
     return static_cast<UCollationResult>(result);
 }
