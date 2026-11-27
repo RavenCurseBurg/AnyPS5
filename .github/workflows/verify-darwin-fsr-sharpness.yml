@@ -1,5 +1,6 @@
 name: Verify FSR configuration on Darwin
 on:
+  workflow_dispatch:
   push:
     branches: [verify/darwin-fsr-sharpness]
 permissions:
