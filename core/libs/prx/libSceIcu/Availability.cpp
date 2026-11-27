@@ -1,4 +1,5 @@
 #include "prx/libSceIcu/libSceIcu.hpp"
+#include "prx/libSceIcu/Data.hpp"
 #include "prx/libSceIcu/DefaultLocaleName.hpp"
 #include "prx/libc/include/General.hpp"
 #include "unicode/urename.h"
@@ -21,9 +22,6 @@ const char* uloc_getAvailable(std::int32_t index);
 std::int32_t uloc_addLikelySubtags(const char* locale, char* result, std::int32_t capacity, std::int32_t* status);
 std::int32_t uloc_getName(const char* localeID, char* name, std::int32_t capacity, std::int32_t* status);
 std::int32_t uloc_minimizeSubtags(const char* locale, char* result, std::int32_t capacity, std::int32_t* status);
-void udata_setCommonData(const void* data, std::int32_t* status);
-void udata_setFileAccess(std::int32_t access, std::int32_t* status);
-
 }
 
 extern "C" {
