@@ -20,7 +20,7 @@ guest_sce_net
 guest_socket_port_zero
 # #20161
 guest_poll
-# #26806
+# #26806 #17879
 guest_socket_options
 # #25134
 guest_udp
