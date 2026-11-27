@@ -1,0 +1,9 @@
+{
+  "sha": "80781a0e9407b5b93b8b5535c6c2fa101092a0b1",
+  "files": {
+    "agc_driver_target_memo_tests.exe": "c9b54e2b59f0309838ae60ebf84e0aaa8fc36e9448fb44ccb61197bef93e761a",
+    "libSceAgcDriver.prx": "eb1d2c52c2c67f8c26f7481528e65c94e2a0fcf7bed2fcaad342cb609945fc4c",
+    "libkernel.prx": "4481bfa28512c224045f13f8484218e3897f9fbf14302fad21edd50dd75b1690",
+    "libc.prx": "b0e62cf79e0031410fad111e6e868f7c9971ec59ddb4a7c2a4b3014c2e9378e7"
+  }
+}

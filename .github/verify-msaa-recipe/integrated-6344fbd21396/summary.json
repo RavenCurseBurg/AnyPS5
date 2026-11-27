@@ -1,0 +1,502 @@
+[
+  {
+    "device": "RTX 4060",
+    "mode": "ordinary",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 1.89609375,
+      "p90": 2.01171875,
+      "runs": [
+        1.81640625,
+        1.9109375,
+        1.8984375
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.3953125,
+      "p90": 2.7021875,
+      "runs": [
+        2.3015625,
+        2.44921875,
+        2.39765625
+      ]
+    }
+  },
+  {
+    "device": "RTX 4060",
+    "mode": "ordinary",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 1.86953125,
+      "p90": 1.964375,
+      "runs": [
+        1.84296875,
+        1.8796875,
+        1.8328125
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.37265625,
+      "p90": 2.616875,
+      "runs": [
+        2.50234375,
+        2.378125,
+        2.3546875
+      ]
+    }
+  },
+  {
+    "device": "RTX 4060",
+    "mode": "recipe",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 1.84609375,
+      "p90": 1.9940625,
+      "runs": [
+        1.85,
+        1.77578125,
+        1.8578125
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.33359375,
+      "p90": 2.6290625000000003,
+      "runs": [
+        2.33984375,
+        2.2625,
+        2.35078125
+      ]
+    }
+  },
+  {
+    "device": "RTX 4060",
+    "mode": "recipe",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 8064,
+    "record_us_per_draw": {
+      "median": 1.20390625,
+      "p90": 1.29015625,
+      "runs": [
+        1.2140625,
+        1.20625,
+        1.17890625
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 1.690625,
+      "p90": 1.8485937499999998,
+      "runs": [
+        1.71484375,
+        1.6875,
+        1.64921875
+      ]
+    }
+  },
+  {
+    "device": "RTX 4060",
+    "mode": "mrt-ordinary",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 2.2921875,
+      "p90": 2.40390625,
+      "runs": [
+        2.2171875,
+        2.34609375,
+        2.27734375
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.821875,
+      "p90": 3.0325,
+      "runs": [
+        2.71875,
+        2.8609375,
+        2.7828125
+      ]
+    }
+  },
+  {
+    "device": "RTX 4060",
+    "mode": "mrt-ordinary",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 2.3296875,
+      "p90": 2.4532812500000003,
+      "runs": [
+        2.290625,
+        2.26015625,
+        2.3703125
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.8453125,
+      "p90": 3.1543750000000004,
+      "runs": [
+        2.7703125,
+        2.76484375,
+        2.88984375
+      ]
+    }
+  },
+  {
+    "device": "RTX 4060",
+    "mode": "mrt-recipe",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 2.27421875,
+      "p90": 2.4162500000000002,
+      "runs": [
+        2.303125,
+        2.19765625,
+        2.27734375
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.76328125,
+      "p90": 3.02734375,
+      "runs": [
+        2.8015625,
+        2.6734375,
+        2.7703125
+      ]
+    }
+  },
+  {
+    "device": "RTX 4060",
+    "mode": "mrt-recipe",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 8064,
+    "record_us_per_draw": {
+      "median": 1.496875,
+      "p90": 1.585625,
+      "runs": [
+        1.4828125,
+        1.45234375,
+        1.52578125
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 1.9875,
+      "p90": 2.116875,
+      "runs": [
+        1.96953125,
+        1.940625,
+        2.0203125
+      ]
+    }
+  },
+  {
+    "device": "RTX 4060",
+    "mode": "single-sample-recipe",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 8064,
+    "record_us_per_draw": {
+      "median": 1.0546875,
+      "p90": 1.07953125,
+      "runs": [
+        1.059375,
+        1.040625,
+        1.04609375
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 1.5421875,
+      "p90": 1.5790624999999998,
+      "runs": [
+        1.553125,
+        1.52421875,
+        1.5375
+      ]
+    }
+  },
+  {
+    "device": "RTX 4060",
+    "mode": "single-sample-recipe",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 8064,
+    "record_us_per_draw": {
+      "median": 1.0703125,
+      "p90": 1.08671875,
+      "runs": [
+        1.04921875,
+        1.071875,
+        1.06875
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 1.5578125,
+      "p90": 1.58203125,
+      "runs": [
+        1.54765625,
+        1.559375,
+        1.55546875
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "ordinary",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 1.82265625,
+      "p90": 1.8660937499999999,
+      "runs": [
+        1.821875,
+        1.821875,
+        1.8234375
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.9640625,
+      "p90": 3.06078125,
+      "runs": [
+        2.9671875,
+        2.953125,
+        2.96640625
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "ordinary",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 1.80546875,
+      "p90": 1.84421875,
+      "runs": [
+        1.79921875,
+        1.80703125,
+        1.8171875
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.95625,
+      "p90": 3.1410937500000005,
+      "runs": [
+        2.9671875,
+        2.98359375,
+        2.946875
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "recipe",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 1.81875,
+      "p90": 1.9162500000000002,
+      "runs": [
+        1.80546875,
+        1.8421875,
+        1.79921875
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.95703125,
+      "p90": 3.13625,
+      "runs": [
+        2.96171875,
+        2.99296875,
+        2.92578125
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "recipe",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 8064,
+    "record_us_per_draw": {
+      "median": 1.17578125,
+      "p90": 1.27328125,
+      "runs": [
+        1.16640625,
+        1.16328125,
+        1.18359375
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.35390625,
+      "p90": 2.7925000000000004,
+      "runs": [
+        2.296875,
+        2.7109375,
+        2.3578125
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "mrt-ordinary",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 2.24375,
+      "p90": 2.461875,
+      "runs": [
+        2.37109375,
+        2.22578125,
+        2.24375
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 3.38828125,
+      "p90": 3.6979687500000002,
+      "runs": [
+        3.54375,
+        3.34921875,
+        3.3828125
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "mrt-ordinary",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 2.25859375,
+      "p90": 2.349375,
+      "runs": [
+        2.25234375,
+        2.2484375,
+        2.271875
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 3.409375,
+      "p90": 3.89828125,
+      "runs": [
+        3.3609375,
+        3.365625,
+        3.80234375
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "mrt-recipe",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 0,
+    "record_us_per_draw": {
+      "median": 2.2390625,
+      "p90": 2.38875,
+      "runs": [
+        2.2421875,
+        2.234375,
+        2.24453125
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 3.51171875,
+      "p90": 3.9548437500000007,
+      "runs": [
+        3.41875,
+        3.73046875,
+        3.7703125
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "mrt-recipe",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 8064,
+    "record_us_per_draw": {
+      "median": 1.45546875,
+      "p90": 1.57625,
+      "runs": [
+        1.48125,
+        1.45234375,
+        1.44765625
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.58984375,
+      "p90": 2.8889062500000002,
+      "runs": [
+        2.63046875,
+        2.58828125,
+        2.57734375
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "single-sample-recipe",
+    "kind": "parent",
+    "draws": 8064,
+    "hits": 8064,
+    "record_us_per_draw": {
+      "median": 1.015625,
+      "p90": 1.05734375,
+      "runs": [
+        1.01328125,
+        1.04453125,
+        1.01171875
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.0890625,
+      "p90": 2.6765625,
+      "runs": [
+        2.03203125,
+        2.24921875,
+        2.02890625
+      ]
+    }
+  },
+  {
+    "device": "UHD",
+    "mode": "single-sample-recipe",
+    "kind": "candidate",
+    "draws": 8064,
+    "hits": 8064,
+    "record_us_per_draw": {
+      "median": 1.06171875,
+      "p90": 1.16125,
+      "runs": [
+        1.0796875,
+        1.03203125,
+        1.03359375
+      ]
+    },
+    "total_us_per_draw": {
+      "median": 2.10078125,
+      "p90": 2.2560937500000002,
+      "runs": [
+        2.11171875,
+        2.065625,
+        2.1015625
+      ]
+    }
+  }
+]

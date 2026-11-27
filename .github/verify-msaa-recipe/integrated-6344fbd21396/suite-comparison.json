@@ -1,0 +1,84 @@
+{
+  "RTX-4060": {
+    "parent_sha": "80781a0e9407b5b93b8b5535c6c2fa101092a0b1",
+    "candidate_sha": "6344fbd21396d18234ef197c337cae441f71f20b",
+    "baseline": {
+      "pass": 149,
+      "skip": 2
+    },
+    "candidate": {
+      "pass": 150,
+      "skip": 2
+    },
+    "differences": {},
+    "base_failures": [],
+    "candidate_failures": [],
+    "new_recipe": {
+      "status": "pass",
+      "time": 0.506326,
+      "validation": [],
+      "selected": true,
+      "layer": true,
+      "failure": null,
+      "adapter_names": [
+        "NVIDIA GeForce RTX 4060"
+      ]
+    },
+    "dcc_import": {
+      "agc_driver_initial_texture_dcc_2": "pass",
+      "agc_driver_texture_dcc_target_2": "pass",
+      "agc_driver_initial_texture_dcc_4": "pass",
+      "agc_driver_texture_dcc_target_4": "pass",
+      "agc_driver_initial_texture_dcc_8": "pass",
+      "agc_driver_texture_dcc_target_8": "pass"
+    },
+    "new_validation": {}
+  },
+  "UHD": {
+    "parent_sha": "80781a0e9407b5b93b8b5535c6c2fa101092a0b1",
+    "candidate_sha": "6344fbd21396d18234ef197c337cae441f71f20b",
+    "baseline": {
+      "pass": 146,
+      "fail": 4,
+      "skip": 1
+    },
+    "candidate": {
+      "pass": 147,
+      "fail": 4,
+      "skip": 1
+    },
+    "differences": {},
+    "base_failures": [
+      "agc_driver_multisample_readback_upload",
+      "agc_driver_native_depth_publication",
+      "agc_driver_native_depth_other_identity",
+      "agc_driver_native_depth_fill_over_pending_import"
+    ],
+    "candidate_failures": [
+      "agc_driver_multisample_readback_upload",
+      "agc_driver_native_depth_publication",
+      "agc_driver_native_depth_other_identity",
+      "agc_driver_native_depth_fill_over_pending_import"
+    ],
+    "new_recipe": {
+      "status": "pass",
+      "time": 0.600981,
+      "validation": [],
+      "selected": true,
+      "layer": true,
+      "failure": null,
+      "adapter_names": [
+        "Intel(R) UHD Graphics 770"
+      ]
+    },
+    "dcc_import": {
+      "agc_driver_initial_texture_dcc_2": "pass",
+      "agc_driver_texture_dcc_target_2": "pass",
+      "agc_driver_initial_texture_dcc_4": "pass",
+      "agc_driver_texture_dcc_target_4": "pass",
+      "agc_driver_initial_texture_dcc_8": "pass",
+      "agc_driver_texture_dcc_target_8": "pass"
+    },
+    "new_validation": {}
+  }
+}
