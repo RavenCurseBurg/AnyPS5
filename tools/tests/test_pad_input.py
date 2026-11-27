@@ -82,7 +82,7 @@ class PadInputTests(unittest.TestCase):
                 result = subprocess.run([sys.executable, str(Path(pad_input.__file__).with_name(script)),
                                          str(self.path), "cross"], capture_output=True, text=True, timeout=3)
                 self.assertEqual(result.returncode, 2, result.stderr)
-                self.assertIn("controller command path must be a regular file", result.stderr)
+                self.assertIn("controller command must be a regular file", result.stderr)
                 self.assertTrue(stat.S_ISFIFO(self.path.stat().st_mode))
 
     @unittest.skipUnless(os.name == "nt", "requires a Windows named pipe")
@@ -92,7 +92,7 @@ class PadInputTests(unittest.TestCase):
                 result = subprocess.run([sys.executable, str(Path(pad_input.__file__).with_name(script)),
                                          pipe.address, "cross"], capture_output=True, text=True, timeout=3)
                 self.assertEqual(result.returncode, 2, result.stderr)
-                self.assertIn("controller command path must be a regular file", result.stderr)
+                self.assertIn("controller command must be a regular file", result.stderr)
 
     def test_malformed_timeline_bodies_do_not_exhaust_sequence(self):
         maximum = 2**64 - 1

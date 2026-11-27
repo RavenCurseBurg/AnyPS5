@@ -77,7 +77,7 @@ def previous_sequence(path):
     try:
         with open(path, "rb", opener=lambda name, flags: os.open(name, flags | nonblocking)) as source:
             if not stat.S_ISREG(os.fstat(source.fileno()).st_mode):
-                raise ValueError(f"controller command path must be a regular file: {path}")
+                raise ValueError(f"{path}: controller command must be a regular file")
             contents = source.read(COMMAND_FILE_BYTES + 1)
     except FileNotFoundError:
         return 0
