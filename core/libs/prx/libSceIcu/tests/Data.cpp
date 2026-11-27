@@ -101,6 +101,10 @@ void Allocator() {
     status = 0;
     Expect(usearch_open_nid_postfix(u"a", 1, u"ab", 2, "en", nullptr, &status) && status <= 0,
            "search opens with the guest allocator");
+    status = 0;
+    auto* collator = ucol_open_nid_postfix("en", &status);
+    Expect(collator && status <= 0 && ucol_strcoll_nid_postfix(collator, u"a", 1, u"b", 1) == UCOL_LESS,
+           "registered collator compares with the guest allocator");
     u_cleanup_nid_postfix();
     Expect(memory.live == 0 && memory.allocations == memory.frees, "cleanup frees retained ICU caches before allocator reset");
     status = 0;

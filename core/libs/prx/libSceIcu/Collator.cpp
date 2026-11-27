@@ -1,4 +1,5 @@
 #include "prx/libSceIcu/CollatorHost.hpp"
+#include "prx/libSceIcu/NativeLifecycle.hpp"
 #include "prx/libSceIcu/RecoveredSignatures.hpp"
 #include "prx/libSceIcu/Status.hpp"
 #include "prx/libc/include/General.hpp"
@@ -143,6 +144,13 @@ bool CollationKeyword(const char* keyword, const char* caller) {
 
 } // namespace
 
+void Icu::ClearCollators() {
+    auto& registry = Collators();
+    decltype(registry.collators) retired;
+    const std::lock_guard lock(registry.mutex);
+    retired.swap(registry.collators);
+}
+
 extern "C" {
 
 void APS5_VABI ucol_close_nid_postfix(UCollator* coll) {
@@ -217,6 +225,7 @@ UCollator* APS5_VABI ucol_open_nid_postfix(const char* locale, std::int32_t* sta
         if (copied != 0) NotImplemented_nid_no_patch(__func__);
     }
     auto outgoing = incoming;
+    const std::lock_guard lifecycle(Icu::NativeLifecycleMutex);
     void* collator = Icu::CollatorHost::Open(locale ? name.c_str() : nullptr, outgoing);
     if (collator) {
         const std::shared_ptr<void> owner(collator, Icu::CollatorHost::Close);

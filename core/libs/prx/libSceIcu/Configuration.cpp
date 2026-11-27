@@ -161,6 +161,7 @@ void APS5_VABI u_cleanup_nid_postfix() {
     {
         const std::lock_guard native(Icu::NativeLifecycleMutex);
         Icu::ClearStringSearches();
+        Icu::ClearCollators();
         u_cleanup();
         const std::lock_guard lock(MemoryLock);
         Memory = {};
