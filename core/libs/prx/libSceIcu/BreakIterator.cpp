@@ -5,7 +5,9 @@
 #include "unicode/uenum.h"
 #include "unicode/uloc.h"
 #include <mutex>
-#include <unordered_set>
+#include <string>
+#include <unordered_map>
+#include <utility>
 
 #undef ubrk_open
 #undef ubrk_close
@@ -26,7 +28,11 @@ namespace {
 
 struct Registry {
     std::mutex mutex;
-    std::unordered_set<const UBreakIterator*> iterators;
+    struct Recipe {
+        std::int32_t type;
+        std::string locale;
+    };
+    std::unordered_map<const UBreakIterator*, Recipe> iterators;
 };
 
 Registry& Iterators() {
@@ -34,10 +40,10 @@ Registry& Iterators() {
     return registry;
 }
 
-void Register(UBreakIterator* iterator) {
+void Register(UBreakIterator* iterator, std::int32_t type, std::string locale) {
     auto& registry = Iterators();
     const std::lock_guard lock(registry.mutex);
-    registry.iterators.insert(iterator);
+    registry.iterators.emplace(iterator, Registry::Recipe{type, std::move(locale)});
 }
 
 bool Unregister(const UBreakIterator* iterator) {
@@ -52,11 +58,16 @@ namespace Icu::BreakIterator {
 
 void* CloneRegistered(const void* iterator, std::int32_t& status, const char* caller) {
     if (!iterator) return nullptr;
+    Registry::Recipe recipe;
     auto& registry = Iterators();
-    const std::lock_guard lock(registry.mutex);
-    if (!registry.iterators.contains(static_cast<const UBreakIterator*>(iterator))) NotImplemented_nid_no_patch(caller);
+    {
+        const std::lock_guard lock(registry.mutex);
+        const auto found = registry.iterators.find(static_cast<const UBreakIterator*>(iterator));
+        if (found == registry.iterators.end()) NotImplemented_nid_no_patch(caller);
+        recipe = found->second;
+    }
     auto code = static_cast<UErrorCode>(status);
-    auto* clone = ubrk_clone_78(static_cast<const UBreakIterator*>(iterator), &code);
+    auto* clone = ubrk_open_78(static_cast<UBreakIteratorType>(recipe.type), recipe.locale.c_str(), u"", 0, &code);
     status = code;
     return clone;
 }
@@ -72,12 +83,13 @@ extern "C" {
 void* APS5_VABI ubrk_open(std::int32_t type, const char* locale, const char16_t* text, std::int32_t length,
                          std::int32_t* error) {
     if (!error) APS5_INVALID_ARG_EX;
+    const std::string localeName = locale ? locale : Icu::DefaultLocaleName();
     auto status = static_cast<UErrorCode>(*error);
-    auto* result = ubrk_open_78(static_cast<UBreakIteratorType>(type), locale ? locale : Icu::DefaultLocaleName(), text, length, &status);
+    auto* result = ubrk_open_78(static_cast<UBreakIteratorType>(type), localeName.c_str(), text, length, &status);
     *error = status;
     if (result) {
         try {
-            Register(result);
+            Register(result, type, localeName);
         } catch (...) {
             ubrk_close_78(result);
             throw;
