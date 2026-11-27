@@ -1,4 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
+if(ANYPS5_ICU_HOST_TOOLS_ONLY)
+    include(cmake/icu-host/CMakeLists.txt)
+    return()
+endif()
 if(CMAKE_HOST_APPLE AND NOT ANYPS5_RELINKER_ONLY)
     set(CMAKE_APPLE_SILICON_PROCESSOR x86_64 CACHE STRING "Host processor CMake reports on Apple silicon")
     set(CMAKE_OSX_ARCHITECTURES x86_64 CACHE STRING "Architectures built on macOS")
