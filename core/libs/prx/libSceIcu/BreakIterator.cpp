@@ -4,7 +4,9 @@
 #include "unicode/uenum.h"
 #include "unicode/uloc.h"
 #include <mutex>
-#include <unordered_set>
+#include <new>
+#include <string>
+#include <unordered_map>
 
 #undef ubrk_open
 #undef ubrk_close
@@ -23,9 +25,14 @@
 
 namespace {
 
+struct BreakRules {
+    UBreakIteratorType type;
+    std::string locale;
+};
+
 struct Registry {
     std::mutex mutex;
-    std::unordered_set<const UBreakIterator*> iterators;
+    std::unordered_map<const UBreakIterator*, BreakRules> iterators;
 };
 
 Registry& Iterators() {
@@ -33,10 +40,18 @@ Registry& Iterators() {
     return registry;
 }
 
-void Register(UBreakIterator* iterator) {
+void Register(UBreakIterator* iterator, UBreakIteratorType type, const char* locale) {
     auto& registry = Iterators();
     const std::lock_guard lock(registry.mutex);
-    registry.iterators.insert(iterator);
+    registry.iterators.try_emplace(iterator, type, locale);
+}
+
+BreakRules RegisteredRules(const void* iterator, const char* caller) {
+    auto& registry = Iterators();
+    const std::lock_guard lock(registry.mutex);
+    const auto found = registry.iterators.find(static_cast<const UBreakIterator*>(iterator));
+    if (found == registry.iterators.end()) NotImplemented_nid_no_patch(caller);
+    return found->second;
 }
 
 bool Unregister(const UBreakIterator* iterator) {
@@ -49,18 +64,21 @@ bool Unregister(const UBreakIterator* iterator) {
 
 namespace Icu::BreakIterator {
 
-void* CloneRegistered(const void* iterator, std::int32_t& status, const char* caller) {
+void* OpenForSearch(const void* iterator, std::int32_t& status, const char* caller) {
     if (!iterator) return nullptr;
-    auto& registry = Iterators();
-    const std::lock_guard lock(registry.mutex);
-    if (!registry.iterators.contains(static_cast<const UBreakIterator*>(iterator))) NotImplemented_nid_no_patch(caller);
-    auto code = static_cast<UErrorCode>(status);
-    auto* clone = ubrk_clone_78(static_cast<const UBreakIterator*>(iterator), &code);
-    status = code;
-    return clone;
+    try {
+        const auto rules = RegisteredRules(iterator, caller);
+        auto code = static_cast<UErrorCode>(status);
+        auto* result = ubrk_open_78(rules.type, rules.locale.c_str(), nullptr, 0, &code);
+        if (U_FAILURE(code)) status = code;
+        return result;
+    } catch (const std::bad_alloc&) {
+        status = U_MEMORY_ALLOCATION_ERROR;
+        return nullptr;
+    }
 }
 
-void CloseClone(void* iterator) {
+void CloseForSearch(void* iterator) {
     ubrk_close_78(static_cast<UBreakIterator*>(iterator));
 }
 
@@ -72,11 +90,18 @@ void* APS5_VABI ubrk_open(std::int32_t type, const char* locale, const char16_t*
                          std::int32_t* error) {
     if (!error) APS5_INVALID_ARG_EX;
     auto status = static_cast<UErrorCode>(*error);
-    auto* result = ubrk_open_78(static_cast<UBreakIteratorType>(type), locale, text, length, &status);
+    if (U_FAILURE(status)) return nullptr;
+    const auto kind = static_cast<UBreakIteratorType>(type);
+    const char* requestedLocale = locale ? locale : uloc_getDefault_78();
+    auto* result = ubrk_open_78(kind, requestedLocale, text, length, &status);
     *error = status;
     if (result) {
         try {
-            Register(result);
+            Register(result, kind, requestedLocale);
+        } catch (const std::bad_alloc&) {
+            ubrk_close_78(result);
+            *error = U_MEMORY_ALLOCATION_ERROR;
+            return nullptr;
         } catch (...) {
             ubrk_close_78(result);
             throw;

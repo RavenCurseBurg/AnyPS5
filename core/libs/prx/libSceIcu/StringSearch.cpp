@@ -49,7 +49,7 @@ struct SearchState {
 
     ~SearchState() {
         Icu::StringSearchHost::Close(search);
-        Icu::BreakIterator::CloseClone(breakIterator);
+        Icu::BreakIterator::CloseForSearch(breakIterator);
     }
 };
 
@@ -164,7 +164,7 @@ UStringSearch* APS5_VABI usearch_open_nid_postfix(const char16_t* pattern, std::
     errno = savedErrno;
     if (copied != 0) NotImplemented_nid_no_patch(__func__);
     auto outgoing = incoming;
-    state->breakIterator = Icu::BreakIterator::CloneRegistered(breakIterator, outgoing, __func__);
+    state->breakIterator = Icu::BreakIterator::OpenForSearch(breakIterator, outgoing, __func__);
     if (breakIterator && !state->breakIterator) {
         WriteChangedStatus(status, incoming, outgoing, __func__);
         return nullptr;

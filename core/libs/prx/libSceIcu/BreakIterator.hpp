@@ -4,8 +4,8 @@
 
 namespace Icu::BreakIterator {
 
-void* CloneRegistered(const void* iterator, std::int32_t& status, const char* caller);
-void CloseClone(void* iterator);
+void* OpenForSearch(const void* iterator, std::int32_t& status, const char* caller);
+void CloseForSearch(void* iterator);
 
 }
 

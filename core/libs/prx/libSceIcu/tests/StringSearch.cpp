@@ -176,10 +176,22 @@ void Run() {
     status = 0;
     auto* iterator = ubrk_open(0, "en", u"old", 3, &status);
     Require(iterator != nullptr && status <= 0);
+    Require(ubrk_next(iterator) == 1);
     auto* restricted = usearch_open_nid_postfix(u"ana", 3, u"bananas", 7, "en", static_cast<UBreakIterator*>(iterator), &status);
     Require(restricted != nullptr && status <= 0);
+    Require(ubrk_current(iterator) == 1);
     Require(ubrk_last(iterator) == 3);
     ubrk_close(iterator);
+    status = 0;
+    char lineLocale[] = "en@lb=strict";
+    auto* line = ubrk_open(2, lineLocale, u"one two", 7, &status);
+    Require(line != nullptr && status <= 0);
+    lineLocale[0] = '\0';
+    const auto boundary = ubrk_next(line);
+    Require(boundary > 0 && boundary < 7);
+    Require(usearch_open_nid_postfix(u"two", 3, u"one two", 7, "en", static_cast<UBreakIterator*>(line), &status) != nullptr);
+    Require(status <= 0 && ubrk_current(line) == boundary);
+    ubrk_close(line);
     u_cleanup_nid_postfix();
 }
 
