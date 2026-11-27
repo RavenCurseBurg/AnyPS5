@@ -43,20 +43,15 @@ set(icu_data_dir ${CMAKE_BINARY_DIR}/icu-data)
 file(GLOB_RECURSE icu_data_inputs CONFIGURE_DEPENDS ${ICU_SOURCE_DIR}/data/* ${ICU_SOURCE_DIR}/python/*.py)
 if(CMAKE_HOST_WIN32)
     set(icu_data_mode windows-exec)
-    set(icu_builder_tools icu-host/bin)
-    set(icu_builder_data icu-data)
-    file(RELATIVE_PATH icu_builder_source "${CMAKE_BINARY_DIR}" "${ICU_SOURCE_DIR}/data")
-    if(icu_builder_source MATCHES "[^a-zA-Z0-9_./:-]")
-        set(icu_builder_source icu-data/input)
-        set(icu_prepare_input
-            COMMAND ${CMAKE_COMMAND} -E remove_directory "${icu_data_dir}/input"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${ICU_SOURCE_DIR}/data" "${icu_data_dir}/input")
-    endif()
 else()
     set(icu_data_mode unix-exec)
-    set(icu_builder_tools ${icu_host_dir}/bin)
-    set(icu_builder_data ${icu_data_dir})
-    set(icu_builder_source ${ICU_SOURCE_DIR}/data)
+endif()
+file(RELATIVE_PATH icu_builder_source "${CMAKE_BINARY_DIR}" "${ICU_SOURCE_DIR}/data")
+if(icu_builder_source MATCHES "[^a-zA-Z0-9_./:-]")
+    set(icu_builder_source icu-data/input)
+    set(icu_prepare_input
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${icu_data_dir}/input"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${ICU_SOURCE_DIR}/data" "${icu_data_dir}/input")
 endif()
 file(TO_NATIVE_PATH "${ICU_SOURCE_DIR}/python" icu_python_path)
 if(CMAKE_HOST_WIN32)
@@ -69,8 +64,8 @@ add_custom_command(OUTPUT ${icu_data_dir}/icudt78l_dat.c
     ${icu_prepare_input}
     COMMAND ${CMAKE_COMMAND} -E time ${CMAKE_COMMAND} -E env PYTHONPATH=${icu_python_path}
         ${Python3_EXECUTABLE} ${icu_data_python_args}
-        --mode=${icu_data_mode} --tool_cfg=host --tool_dir=${icu_builder_tools}
-        --src_dir=${icu_builder_source} --out_dir=${icu_builder_data}/icudt78l --tmp_dir=${icu_builder_data}/tmp
+        --mode=${icu_data_mode} --tool_cfg=host --tool_dir=icu-host/bin
+        --src_dir=${icu_builder_source} --out_dir=icu-data/icudt78l --tmp_dir=icu-data/tmp
         --filter_file=${CMAKE_SOURCE_DIR}/cmake/IcuDataFilter.json --verbose
     COMMAND ${icu_host_icupkg} -tl -a ${icu_data_dir}/tmp/icudata.lst
         -s ${icu_data_dir}/icudt78l new ${icu_data_dir}/icudt78l.dat
