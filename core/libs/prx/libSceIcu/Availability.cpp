@@ -63,12 +63,12 @@ std::int32_t APS5_VABI uloc_getName_nid_postfix(const char* localeID, char* name
 
 void APS5_VABI udata_setCommonData_nid_postfix(const void* data, std::int32_t* status) {
     if (!Writable(status, sizeof(std::int32_t))) return;
-    udata_setCommonData(data, status);
+    Icu::SetCommonData(data, status);
 }
 
 void APS5_VABI udata_setFileAccess_nid_postfix(std::int32_t access, std::int32_t* status) {
     if (!Writable(status, sizeof(std::int32_t))) return;
-    udata_setFileAccess(access, status);
+    Icu::SetFileAccess(access, status);
 }
 
 }

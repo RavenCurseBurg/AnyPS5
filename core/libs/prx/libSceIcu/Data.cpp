@@ -4,9 +4,9 @@
 #undef udata_setCommonData
 #undef udata_setFileAccess
 
-extern "C" {
+namespace Icu {
 
-void APS5_VABI udata_setCommonData(const void* data, std::int32_t* error) {
+void SetCommonData(const void* data, std::int32_t* error) {
     if (!error) {
         udata_setCommonData_78(data, nullptr);
         return;
@@ -16,7 +16,7 @@ void APS5_VABI udata_setCommonData(const void* data, std::int32_t* error) {
     *error = status;
 }
 
-void APS5_VABI udata_setFileAccess(std::int32_t access, std::int32_t*) {
+void SetFileAccess(std::int32_t access, std::int32_t*) {
     udata_setFileAccess_78(static_cast<UDataFileAccess>(access), nullptr);
 }
 
