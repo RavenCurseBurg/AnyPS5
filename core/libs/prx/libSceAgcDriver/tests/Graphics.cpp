@@ -1427,6 +1427,10 @@ void ShaderStageTests() {
     {
         const auto real = AgcDriver::Graphics::DecodeState(queue).stages;
         Require(real.path == AgcDriver::Graphics::ShaderPath::TessellationGeometry && real.tessellation && real.tessellationGeometry && real.tessellationGeometry->esgsItemSize == 4u, "tessellation routed through a real ES stage (ES_EN 2) was not decoded as tessellation followed by a geometry stage");
+        using ShaderRecompiler::ShaderStage;
+        Require(StageMeshConfiguration(real, ShaderStage::Mesh, 12u)->esgsItemSize == 12u, "the tessellation mesh compile lost the measured item stride");
+        Require(StageMeshConfiguration(real, ShaderStage::Mesh)->esgsItemSize == 4u, "the tessellation mesh compile lost the configured stride without a measurement");
+        Require(StageMeshConfiguration(real, ShaderStage::TessellationEvaluation, 12u)->esgsItemSize == 4u, "the domain compile used the mesh stage's measured stride");
     }
     queue.context[0x2d5] = 0x60213d;
     expectFailure([&] { AgcDriver::Graphics::DecodeState(queue); }, "reserved LS_EN, ES_EN or VS_EN encoding");

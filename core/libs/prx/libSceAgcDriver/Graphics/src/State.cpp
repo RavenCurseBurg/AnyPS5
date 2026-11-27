@@ -1463,8 +1463,13 @@ std::uint32_t StageWaveSize(const ShaderStages& stages, ShaderRecompiler::Shader
     return stages.vertexWaveSize;
 }
 
-std::optional<ShaderRecompiler::MeshConfiguration> StageMeshConfiguration(const ShaderStages& stages, ShaderRecompiler::ShaderStage stage) {
+std::optional<ShaderRecompiler::MeshConfiguration> StageMeshConfiguration(const ShaderStages& stages, ShaderRecompiler::ShaderStage stage, std::uint32_t geometryItemDwords) {
     if (stages.mesh) return stages.mesh;
+    if (stage == ShaderRecompiler::ShaderStage::Mesh && stages.tessellationGeometry && geometryItemDwords != 0u) {
+        auto mesh = *stages.tessellationGeometry;
+        mesh.esgsItemSize = geometryItemDwords;
+        return mesh;
+    }
     if (stage == ShaderRecompiler::ShaderStage::TessellationEvaluation || stage == ShaderRecompiler::ShaderStage::Mesh) return stages.tessellationGeometry;
     return std::nullopt;
 }
